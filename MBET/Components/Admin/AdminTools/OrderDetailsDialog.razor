@@ -1,0 +1,394 @@
+﻿@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using MBET.Infrastructure.Entities
+@using MBET.Core.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IOrderRepository OrderRepo
+@inject IOrderService OrderService
+@inject IProductRepository ProductRepo
+@inject ISettingsService SettingsService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IStringLocalizer<L> L
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog Class="glass-panel" Style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+    <TitleContent>
+        <div class="d-flex justify-space-between align-center px-2">
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" Size="Size.Large" />
+                <div>
+                    <MudText Typo="Typo.h5" Class="font-bold">@L["OrderDetails"]</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">#@(_order?.OrderNumber ?? "...")</MudText>
+                </div>
+            </div>
+            @if (_order != null)
+            {
+                <MudChip T="string" Color="@GetStatusColor(_order.Status)" Variant="Variant.Filled" Size="Size.Medium" Class="font-bold">
+                    @L[$"Status_{_order.Status}"]
+                </MudChip>
+            }
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        @if (_order == null || _settings == null)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudGrid Spacing="4" Class="pt-2">
+                <!-- LEFT COLUMN: Info & Items -->
+                <MudItem xs="12" md="7" lg="8">
+                    <MudStack Spacing="4">
+
+                        <!-- Customer & Shipping Card -->
+                        <MudPaper Class="pa-6 rounded-xl border border-white-10" Elevation="0" Style="background: rgba(255,255,255,0.02);">
+                            <div class="d-flex align-center gap-2 mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Primary" />
+                                <MudText Typo="Typo.h6" Class="font-bold">@L["CustomerInfo"] & @L["ShippingAndDelivery"]</MudText>
+                            </div>
+
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="_order.CustomerName" Label="@L["CustomerName"]" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="@(!_canEditContent)" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @bind-Value="_order.CustomerPhone" Label="@L["CustomerPhone"]" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="@(!_canEditContent)" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="_order.ShippingAddress" Label="@L["ShippingAddress"]" Variant="Variant.Outlined" Lines="2" Margin="Margin.Dense" ReadOnly="@(!_canEditContent)" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <!-- DISPLAYING THE NEW DELIVERY METHOD HERE -->
+                                    <MudTextField @bind-Value="_order.DeliveryMethod" Label="@L["DeliveryMethod"]" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="true" Adornment="Adornment.End" AdornmentIcon="@(_order.DeliveryMethod == "Home" ? Icons.Material.Filled.Home : Icons.Material.Filled.Storefront)" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+
+                        <!-- Order Items Card -->
+                        <MudPaper Class="pa-6 rounded-xl border border-white-10" Elevation="0" Style="background: rgba(255,255,255,0.02);">
+                            <div class="d-flex justify-space-between align-center mb-4">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" />
+                                    <MudText Typo="Typo.h6" Class="font-bold">@L["OrderItems"]</MudText>
+                                </div>
+                            </div>
+
+                            @if (_canEditContent)
+                            {
+                                <div class="d-flex gap-2 mb-4 align-end">
+                                    <MudAutocomplete T="Product" Label="@L["SearchProduct"]" @bind-Value="_selectedProductToAdd"
+                                                     SearchFunc="@SearchProducts"
+                                                     ToStringFunc="@(p => p == null ? null : $"{p.Title} ({p.Price:N0} {_settings.CurrencySymbol})")"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1"
+                                                     AdornmentIcon="@Icons.Material.Filled.Search" />
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddProductToOrder" Disabled="@(_selectedProductToAdd == null)">@L["Add"]</MudButton>
+                                </div>
+                            }
+
+                            <div class="custom-scrollbar" style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+                                <MudStack Spacing="2">
+                                    @foreach (var item in _order.Items)
+                                    {
+                                        <MudPaper Class="pa-3 rounded-lg" Elevation="0" Style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05);">
+                                            <div class="d-flex align-center gap-3">
+                                                <MudHidden Breakpoint="Breakpoint.Xs">
+                                                    <MudAvatar Rounded="true" Image="@item.Product?.Images.FirstOrDefault()?.ImageUrl" Size="Size.Medium" />
+                                                </MudHidden>
+
+                                                <div class="flex-grow-1">
+                                                    <MudText Typo="Typo.body2" Class="font-bold">@item.Product?.Title</MudText>
+                                                    <div class="d-flex align-center gap-2 mt-1">
+                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.UnitPrice.ToString("N0") @_settings.CurrencySymbol x</MudText>
+
+                                                        @if (_canEditContent)
+                                                        {
+                                                            <input type="number" value="@item.Quantity" @onchange="@((e) => UpdateQuantity(item, e.Value))"
+                                                                   style="width: 40px; background: transparent; color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; text-align: center;" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <MudText Typo="Typo.body2" Class="font-bold">@item.Quantity</MudText>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex flex-column align-end">
+                                                    <MudText Typo="Typo.body2" Class="font-bold text-primary">
+                                                        @((item.UnitPrice * item.Quantity).ToString("N0")) @_settings.CurrencySymbol
+                                                    </MudText>
+                                                    @if (_canEditContent)
+                                                    {
+                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveItem(item))" />
+                                                    }
+                                                </div>
+                                            </div>
+                                        </MudPaper>
+                                    }
+                                </MudStack>
+                            </div>
+                        </MudPaper>
+                    </MudStack>
+                </MudItem>
+
+                <!-- RIGHT COLUMN: Workflow & Summary -->
+                <MudItem xs="12" md="5" lg="4">
+                    <MudStack Spacing="4" Class="sticky top-0">
+
+                        <!-- Order Status Control -->
+                        <MudPaper Class="pa-6 rounded-xl border border-white-10" Elevation="0" Style="background: rgba(255,255,255,0.02);">
+                            <MudText Typo="Typo.h6" Class="font-bold mb-4">@L["Workflow"]</MudText>
+
+                            @if (_isAdmin)
+                            {
+                                <MudSelect @bind-Value="_order.Status" Label="@L["OrderStatus"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4">
+                                    @foreach (OrderStatus status in Enum.GetValues(typeof(OrderStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@L[$"Status_{status}"]</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudSelect @bind-Value="_order.PaymentStatus" Label="@L["PaymentStatus"]" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                    @foreach (PaymentStatus status in Enum.GetValues(typeof(PaymentStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@status</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@L["PaymentStatus"]</MudText>
+                                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small" Class="mt-1">
+                                    @_order.PaymentStatus
+                                </MudChip>
+                            }
+                        </MudPaper>
+
+                        <!-- Financial Summary -->
+                        <MudPaper Class="pa-6 rounded-xl border border-white-10" Elevation="0" Style="background: rgba(255,255,255,0.02);">
+                            <MudText Typo="Typo.h6" Class="font-bold mb-4">@L["Summary"]</MudText>
+
+                            <div class="d-flex justify-space-between my-2">
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@L["Subtotal"]</MudText>
+                                <MudText Typo="Typo.body2" Class="font-bold">@_order.Subtotal.ToString("N0") @_settings.CurrencySymbol</MudText>
+                            </div>
+                            <div class="d-flex justify-space-between my-2">
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@L["Tax"] (@(_settings.DefaultTaxRate * 100)%)</MudText>
+                                <MudText Typo="Typo.body2" Class="font-bold">@_order.TaxAmount.ToString("N0") @_settings.CurrencySymbol</MudText>
+                            </div>
+                            <div class="d-flex justify-space-between my-2">
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@L["ShippingFee"]</MudText>
+                                <MudText Typo="Typo.body2" Class="font-bold">@_order.ShippingFee.ToString("N0") @_settings.CurrencySymbol</MudText>
+                            </div>
+
+                            <MudDivider Class="my-4" />
+
+                            <div class="d-flex justify-space-between align-center">
+                                <MudText Typo="Typo.h6">@L["GrandTotal"]</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-black">@_order.GrandTotal.ToString("N0") @_settings.CurrencySymbol</MudText>
+                            </div>
+                        </MudPaper>
+
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_canCancel)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="CancelOrder" Class="mr-auto">@L["CancelOrder"]</MudButton>
+        }
+
+        <MudButton OnClick="Close" Variant="Variant.Text">@L["Close"]</MudButton>
+
+        @if (_canEditContent || _isAdmin)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveOrder" Size="Size.Large" Class="px-8 font-bold">@L["SaveChanges"]</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+    .sticky {
+        position: sticky;
+    }
+
+    .top-0 {
+        top: 0;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid OrderId { get; set; }
+
+    private Order? _order;
+    private GlobalSettings? _settings;
+    private Product? _selectedProductToAdd;
+
+    // Logic Flags
+    private bool _isAdmin = false;
+    private bool _canEditContent = false;
+    private bool _canCancel = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+        _order = await OrderRepo.GetByIdAsync(OrderId);
+
+        if (_order == null) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        _isAdmin = user.IsInRole("SuperAdmin") || user.IsInRole("Administrator") || user.IsInRole("ShopManager");
+
+        if (_isAdmin)
+        {
+            _canEditContent = true;
+            _canCancel = _order.Status != OrderStatus.Cancelled && _order.Status != OrderStatus.Returned && _order.Status != OrderStatus.Delivered;
+        }
+        else
+        {
+            _canEditContent = _order.Status == OrderStatus.Pending;
+            _canCancel = _order.Status == OrderStatus.Pending || _order.Status == OrderStatus.Processing;
+        }
+    }
+
+    private async Task<IEnumerable<Product>> SearchProducts(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return new List<Product>();
+        var result = await ProductRepo.GetProductsAsync(searchTerm: value, pageSize: 10);
+        return result.Items;
+    }
+
+    private void AddProductToOrder()
+    {
+        if (_selectedProductToAdd == null || _order == null) return;
+
+        var existingItem = _order.Items.FirstOrDefault(i => i.ProductId == _selectedProductToAdd.Id);
+        if (existingItem != null)
+        {
+            existingItem.Quantity++;
+        }
+        else
+        {
+            _order.Items.Add(new OrderItem
+            {
+                ProductId = _selectedProductToAdd.Id,
+                Product = _selectedProductToAdd,
+                Quantity = 1,
+                UnitPrice = _selectedProductToAdd.Price
+            });
+        }
+
+        _selectedProductToAdd = null;
+        RecalculateTotals();
+    }
+
+    private void UpdateQuantity(OrderItem item, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out int newQty))
+        {
+            if (newQty < 1) newQty = 1;
+            item.Quantity = newQty;
+            RecalculateTotals();
+        }
+    }
+
+    private void RemoveItem(OrderItem item)
+    {
+        _order?.Items.Remove(item);
+        RecalculateTotals();
+    }
+
+    private void RecalculateTotals()
+    {
+        if (_order == null || _settings == null) return;
+
+        _order.Subtotal = _order.Items.Sum(i => i.UnitPrice * i.Quantity);
+        _order.TaxAmount = _order.Subtotal * _settings.DefaultTaxRate;
+
+        // Retain original logic or recalculate based on updated threshold
+        _order.ShippingFee = _order.Subtotal >= _settings.FreeShippingThreshold && _settings.FreeShippingThreshold > 0 ? 0 : _order.ShippingFee;
+
+        _order.GrandTotal = _order.Subtotal + _order.TaxAmount + _order.ShippingFee;
+    }
+
+    private async Task SaveOrder()
+    {
+        if (_order == null) return;
+
+        try
+        {
+            await OrderService.UpdateOrderAsync(_order);
+            Snackbar.Add(L["OrderUpdatedSuccess"], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["ErrorSaving"]}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CancelOrder()
+    {
+        if (_order == null) return;
+
+        bool? result = await DialogService.ShowMessageBox(
+            L["Warning"],
+            L["ConfirmCancelOrder"],
+            yesText: L["Yes"], cancelText: L["No"]);
+
+        if (result == true)
+        {
+            try
+            {
+                await OrderService.UpdateOrderStatusAsync(_order.Id, OrderStatus.Cancelled);
+                Snackbar.Add(L["OrderCancelledSuccess"], Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"{L["Error"]}: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+
+    private Color GetStatusColor(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => Color.Warning,
+        OrderStatus.Processing => Color.Info,
+        OrderStatus.Shipped => Color.Primary,
+        OrderStatus.Delivered => Color.Success,
+        OrderStatus.Cancelled => Color.Error,
+        OrderStatus.Returned => Color.Dark,
+        _ => Color.Default
+    };
+}

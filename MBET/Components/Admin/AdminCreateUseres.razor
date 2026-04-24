@@ -1,0 +1,126 @@
+﻿@page "/admin/users/create"
+@layout MBET.web.Components.Layout.AdminLayout
+@using MBET.web.ViewModels
+@using Microsoft.AspNetCore.Identity
+@using MBET.Core.Entities.Identity
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<ApplicationRole> RoleManager
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator")]
+
+<PageTitle>@L["CreateUser"] | @L["AdminPanel"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudText Typo="Typo.h4" Class="font-bold mb-6">@L["CreateNewUser"]</MudText>
+
+    <MudPaper Class="pa-8 rounded-xl border border-white-10 bg-surface">
+        <EditForm Model="@_model" OnValidSubmit="CreateUser">
+            <DataAnnotationsValidator />
+
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.FirstName" Label="@L["FirstName"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.LastName" Label="@L["LastName"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Email" Label="@L["EmailAddress"]" Variant="Variant.Outlined" InputType="InputType.Email" Required="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Password" Label="@L["TemporaryPassword"]" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" HelperText="@L["TempPasswordHelper"]" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" Label="@L["Role"]" @bind-Value="_model.Role" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var role in _roles)
+                        {
+                            <MudSelectItem Value="@role">@role</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="_model.IsActive" Color="Color.Success" Label="@L["ActivateImmediately"]" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end gap-4 mt-4">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/admin/users"))">@L["Cancel"]</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Disabled="_processing">
+                        @(_processing? L["Creating"] : L["CreateUser"])
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private AdminCreateUserViewModel _model = new();
+    private List<string> _roles = new();
+    private bool _processing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load roles for the dropdown
+        var roles = RoleManager.Roles.Select(r => r.Name).ToList();
+        _roles = roles.Where(r => r != null).Cast<string>().ToList();
+
+        // Default role
+        if (_roles.Contains("Customer")) _model.Role = "Customer";
+    }
+
+    private async Task CreateUser()
+    {
+        _processing = true;
+        try
+        {
+            var user = new ApplicationUser
+            {
+                UserName = _model.Email,
+                Email = _model.Email,
+                FirstName = _model.FirstName,
+                LastName = _model.LastName,
+                IsActive = _model.IsActive,
+                EmailConfirmed = true, // Admin created users are trusted
+                CreatedAt = DateTime.UtcNow,
+                TenantId = Guid.NewGuid() // Assign a new tenant context
+            };
+
+            var result = await UserManager.CreateAsync(user, _model.Password);
+
+            if (result.Succeeded)
+            {
+                if (!string.IsNullOrEmpty(_model.Role))
+                {
+                    await UserManager.AddToRoleAsync(user, _model.Role);
+                }
+
+                Snackbar.Add(L["UserCreatedSuccess", _model.Email], Severity.Success);
+                Navigation.NavigateTo("/admin/users");
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    Snackbar.Add(error.Description, Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(L["UnexpectedError"], Severity.Error);
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+}

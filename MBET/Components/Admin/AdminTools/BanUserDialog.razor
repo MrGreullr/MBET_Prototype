@@ -1,0 +1,54 @@
+﻿@using MBET.Core.Entities.Identity
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" GutterBottom="true">Ban User: @UserEmail</MudText>
+
+        <MudSelect T="int" Label="Ban Duration" @bind-Value="_duration" Variant="Variant.Outlined" Class="mb-4">
+            <MudSelectItem Value="1">24 Hours</MudSelectItem>
+            <MudSelectItem Value="7">1 Week</MudSelectItem>
+            <MudSelectItem Value="30">1 Month</MudSelectItem>
+            <MudSelectItem Value="365">1 Year</MudSelectItem>
+            <MudSelectItem Value="9999">Permanent</MudSelectItem>
+        </MudSelect>
+
+        <MudAlert Severity="Severity.Warning">The user will be immediately logged out and unable to access the platform.</MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="ConfirmBan">Confirm Ban</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string UserId { get; set; }
+    [Parameter] public string UserEmail { get; set; }
+
+    private int _duration = 7;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmBan()
+    {
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user != null)
+        {
+            user.IsBanned = true;
+            user.BanDate = DateTime.UtcNow;
+            user.BanDuratyionDays = _duration; // Using the property name from your uploaded file
+            user.IsActive = false; // Immediately deactive
+
+            // Force security stamp update to invalidate cookies
+            await UserManager.UpdateSecurityStampAsync(user);
+            await UserManager.UpdateAsync(user);
+
+            Snackbar.Add($"User banned for {_duration} days.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+}

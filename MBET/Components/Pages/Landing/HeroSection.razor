@@ -1,0 +1,148 @@
+﻿@using MudBlazor
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject ISettingsService SettingsService
+@inject IStringLocalizer<L> L
+
+@if (_settings != null)
+{
+    <div class="relative pt-8 pb-8 pt-md-16 pb-md-16 overflow-hidden">
+
+        <div class="absolute rounded-circle mud-theme-secondary"
+             style="width: 50vw; height: 50vw; max-width: 600px; max-height: 600px;
+                        filter: blur(80px); opacity: 0.15; top: -10%; right: -10%; z-index: 0;">
+        </div>
+        <div class="absolute rounded-circle mud-theme-primary"
+             style="width: 50vw; height: 50vw; max-width: 600px; max-height: 600px;
+                        filter: blur(80px); opacity: 0.15; bottom: -10%; left: -10%; z-index: 0;">
+        </div>
+
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-6 relative z-10">
+            <MudGrid Class="align-center" Spacing="10">
+
+                <MudItem xs="12" md="5" Class="order-2 order-md-1">
+                    <MudStack Spacing="6">
+                        <div class="d-flex align-center gap-3">
+                            <div class="mud-theme-primary" style="width: 40px; height: 4px; border-radius: 4px;"></div>
+                            <MudText Typo="Typo.caption" Color="Color.Primary" Class="uppercase font-bold tracking-widest">
+                                @L[_settings.HeroSubtitle]
+                            </MudText>
+                        </div>
+
+                        <MudText Typo="Typo.h2" Class="italic font-black lh-sm">
+                            @L[_settings.HeroTitle] <br />
+                            <MudText Span Color="Color.Secondary" Typo="Typo.h2" Class="italic font-black">
+                                @L[_settings.HeroHighlightText]
+                            </MudText>
+                        </MudText>
+
+                        <MudText Typo="Typo.body1" Class="mud-text-secondary" Style="line-height: 1.6;">
+                            @L[_settings.HeroDescription]
+                        </MudText>
+
+                        <div class="d-flex gap-4 mt-4 flex-wrap">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="px-8 py-4 rounded-lg font-bold" EndIcon="@Icons.Material.Filled.ArrowForward" Href="/catalog">
+                                @L[_settings.HeroCtaText]
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" Size="Size.Large" Class="px-8 py-4 rounded-lg font-bold">
+                                @L["Deals"]
+                            </MudButton>
+                        </div>
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" md="7" Class="order-1 order-md-2">
+                    <div class="relative pa-2 pa-md-4">
+
+                        @if (_settings.EnableHeroOverlay)
+                        {
+                            <div class="absolute inset-0 rounded-xl mud-theme-surface"
+                                 style="opacity: 0.5; transform: rotate(2deg); z-index: 0; border: 1px solid var(--mud-palette-lines-default);"></div>
+                        }
+
+                        <MudImage Src="@_settings.HeroImageUrl"
+                                  Alt="Hero Imagery"
+                                  Fluid="true"
+                                  ObjectFit="ObjectFit.Cover"
+                                  Class="rounded-xl relative z-10 grayscale-hover border-solid"
+                                  Style="aspect-ratio: 16/9; width: 100%; border-width: 1px; border-color: var(--mud-palette-lines-default);" />
+
+                        @if (_settings.EnableHeroOverlay)
+                        {
+                            <MudPaper Class="absolute pa-3 pa-md-4 rounded-xl d-flex align-center gap-3 z-20 floating-badge"
+                                      Elevation="4">
+                                <div class="pulse-dot"></div>
+                                <MudText Typo="Typo.caption" Class="font-bold uppercase">@L["PriorityStream"]</MudText>
+                            </MudPaper>
+                        }
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </div>
+}
+
+@code {
+    private GlobalSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+    }
+}
+
+<style>
+    /* Refactored styles to use CSS variables and removed inline positioning
+           that breaks mobile layouts.
+        */
+
+    .floating-badge {
+        top: 10%;
+        left: -10px; /* Small overlap on desktop */
+        background-color: var(--mud-palette-background);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    /* On small screens, pull the badge inside so it isn't cut off */
+    @@media (max-width: 600px) {
+        .floating-badge {
+            left: 0px;
+            top: 5%;
+        }
+    }
+
+    .pulse-dot {
+        width: 12px;
+        height: 12px;
+        background-color: var(--mud-palette-primary);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    .grayscale-hover {
+        filter: grayscale(100%);
+        transition: filter 0.5s;
+    }
+
+        .grayscale-hover:hover {
+            filter: grayscale(0%);
+        }
+
+    /* Use MudBlazor color variables for the shadow */
+    @@keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(var(--mud-palette-primary-rgb), 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(var(--mud-palette-primary-rgb), 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(var(--mud-palette-primary-rgb), 0);
+        }
+    }
+</style>

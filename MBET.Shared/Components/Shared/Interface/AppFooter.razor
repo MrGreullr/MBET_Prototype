@@ -1,0 +1,102 @@
+﻿@using MudBlazor
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject ISettingsService SettingsService
+@inject IStringLocalizer<L> L
+
+@if (_settings != null)
+{
+    <footer class="pt-20 pb-10 mt-auto relative" style="background-color: var(--mud-palette-background-grey); border-top: 1px solid var(--mud-palette-lines-default);">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-6">
+            <MudGrid Spacing="8">
+                <!-- Brand Column -->
+                <MudItem xs="12" md="4">
+                    <MudStack Spacing="4">
+                        <AppLogo />
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="max-width: 300px; line-height: 1.6;">
+                            @L[_settings.FooterBio]
+                        </MudText>
+                        <div class="d-flex gap-2 mt-2">
+                            @if (!string.IsNullOrEmpty(_settings.GitHubUrl))
+                            {
+                                <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Href="@_settings.GitHubUrl" Target="_blank" Color="Color.Inherit" Variant="Variant.Outlined" Style="border-color: var(--mud-palette-lines-default);" />
+                            }
+                            @if (!string.IsNullOrEmpty(_settings.TwitterUrl))
+                            {
+                                <MudIconButton Icon="@Icons.Custom.Brands.Twitter" Href="@_settings.TwitterUrl" Target="_blank" Color="Color.Inherit" Variant="Variant.Outlined" Style="border-color: var(--mud-palette-lines-default);" />
+                            }
+                            @if (!string.IsNullOrEmpty(_settings.InstagramUrl))
+                            {
+                                <MudIconButton Icon="@Icons.Custom.Brands.Instagram" Href="@_settings.InstagramUrl" Target="_blank" Color="Color.Inherit" Variant="Variant.Outlined" Style="border-color: var(--mud-palette-lines-default);" />
+                            }
+                            @if (!string.IsNullOrEmpty(_settings.FacebookUrl))
+                            {
+                                <MudIconButton Icon="@Icons.Custom.Brands.Facebook" Href="@_settings.FacebookUrl" Target="_blank" Color="Color.Inherit" Variant="Variant.Outlined" Style="border-color: var(--mud-palette-lines-default);" />
+                            }
+                        </div>
+                    </MudStack>
+                </MudItem>
+
+                <!-- Links 1 -->
+                <MudItem xs="6" md="2">
+                    <MudText Typo="Typo.h6" Class="font-bold mb-4">@L["Catalog"]</MudText>
+                    <MudStack Spacing="2">
+                        <MudLink Href="#" Color="Color.Inherit" Style="opacity: 0.7;">@L["FreshDrops"]</MudLink>
+                        <MudLink Href="#" Color="Color.Inherit" Style="opacity: 0.7;">@L["Exclusive"]</MudLink>
+                    </MudStack>
+                </MudItem>
+
+                <!-- Links 2 -->
+                <MudItem xs="6" md="2">
+                    <MudText Typo="Typo.h6" Class="font-bold mb-4">@L["Support"]</MudText>
+                    <MudStack Spacing="2">
+                        <MudLink Href="#" Color="Color.Inherit" Style="opacity: 0.7;">@L["OrderStatus"]</MudLink>
+                        <MudLink Href="#" Color="Color.Inherit" Style="opacity: 0.7;">@L["FAQ"]</MudLink>
+                    </MudStack>
+                </MudItem>
+
+                <!-- Contact -->
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.h6" Class="font-bold mb-4">@L["Contact"]</MudText>
+                    <MudStack Spacing="3">
+                        <div class="d-flex align-center gap-3 opacity-80">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
+                            <MudText>@_settings.SupportEmail</MudText>
+                        </div>
+                        <div class="d-flex align-center gap-3 opacity-80">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Secondary" />
+                            <MudText>@_settings.PhysicalAddress</MudText>
+                        </div>
+                        <div class="d-flex align-center gap-3 opacity-80">
+                            <MudIcon Icon="@Icons.Material.Filled.Phone" Color="Color.Inherit" />
+                            <MudText>@_settings.SupportPhone</MudText>
+                        </div>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-12" Style="border-color: var(--mud-palette-lines-default);" />
+
+            <div class="d-flex flex-column flex-md-row justify-space-between align-center gap-4">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary font-bold uppercase tracking-wider">
+                    &copy; @DateTime.Now.Year @_settings.SiteName. @L["RightsReserved"]
+                </MudText>
+                <div class="d-flex gap-4 opacity-50">
+                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                </div>
+            </div>
+        </MudContainer>
+    </footer>
+}
+
+@code {
+    private GlobalSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+    }
+}

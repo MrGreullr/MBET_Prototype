@@ -1,0 +1,1021 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Catalog" xml:space="preserve">
+    <value>CATALOGUE</value>
+  </data>
+  <data name="FreshDrops" xml:space="preserve">
+    <value>Nouveautés</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>ACCUEIL</value>
+  </data>
+  <data name="Join" xml:space="preserve">
+    <value>REJOINDRE</value>
+  </data>
+  <data name="LimitedAvailability" xml:space="preserve">
+    <value>Disponibilité limitée. Performance illimitée.</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>CONNEXION</value>
+  </data>
+  <data name="RightsReserved" xml:space="preserve">
+    <value>© 2026 MBET SOLUTIONS. TOUS DROITS RÉSERVÉS.</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Rechercher sur ND Shop...</value>
+  </data>
+  <data name="Tech" xml:space="preserve">
+    <value>TECHNIQUE</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Support" xml:space="preserve">
+    <value>Support</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>Contact</value>
+  </data>
+  <data name="OrderStatus" xml:space="preserve">
+    <value>Statut de commande</value>
+  </data>
+  <data name="Returns" xml:space="preserve">
+    <value>Retours</value>
+  </data>
+  <data name="ShippingInfo" xml:space="preserve">
+    <value>Livraison</value>
+  </data>
+  <data name="FAQ" xml:space="preserve">
+    <value>FAQ</value>
+  </data>
+  <data name="Copyright" xml:space="preserve">
+    <value>© 2026 MBET SOLUTIONS.</value>
+  </data>
+  <data name="MyProfile" xml:space="preserve">
+    <value>Mon Profil</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Tableau de Bord</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Déconnexion</value>
+  </data>
+  <data name="Guest" xml:space="preserve">
+    <value>Invité</value>
+  </data>
+  <data name="Member" xml:space="preserve">
+    <value>Membre</value>
+  </data>
+  <data name="WelcomeBack" xml:space="preserve">
+    <value>Bon retour</value>
+  </data>
+  <data name="LoginSubtitle" xml:space="preserve">
+    <value>Entrez vos identifiants pour accéder au terminal.</value>
+  </data>
+  <data name="EmailAddress" xml:space="preserve">
+    <value>Adresse Email</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="RememberMe" xml:space="preserve">
+    <value>Se souvenir de moi</value>
+  </data>
+  <data name="ForgotPasswordLink" xml:space="preserve">
+    <value>Mot de passe oublié ?</value>
+  </data>
+  <data name="AccessAccount" xml:space="preserve">
+    <value>ACCÉDER AU COMPTE</value>
+  </data>
+  <data name="NotAMember" xml:space="preserve">
+    <value>Pas encore membre ?</value>
+  </data>
+  <data name="RegisterNowLink" xml:space="preserve">
+    <value>S'inscrire maintenant</value>
+  </data>
+  <data name="JoinCollective" xml:space="preserve">
+    <value>Rejoindre le Collectif</value>
+  </data>
+  <data name="RegisterSubtitle" xml:space="preserve">
+    <value>Créez votre identité pour débloquer des offres exclusives.</value>
+  </data>
+  <data name="FirstName" xml:space="preserve">
+    <value>Prénom</value>
+  </data>
+  <data name="LastName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="ConfirmPassword" xml:space="preserve">
+    <value>Confirmer le mot de passe</value>
+  </data>
+  <data name="TermsAgreement" xml:space="preserve">
+    <value>J'accepte les</value>
+  </data>
+  <data name="TermsOfService" xml:space="preserve">
+    <value>Conditions d'utilisation</value>
+  </data>
+  <data name="CreateAccount" xml:space="preserve">
+    <value>CRÉER UN COMPTE</value>
+  </data>
+  <data name="AlreadyMember" xml:space="preserve">
+    <value>DÉJÀ MEMBRE ?</value>
+  </data>
+  <data name="LoginLink" xml:space="preserve">
+    <value>Connexion</value>
+  </data>
+  <data name="PasswordRecovery" xml:space="preserve">
+    <value>Récupération de mot de passe</value>
+  </data>
+  <data name="RecoverySubtitle" xml:space="preserve">
+    <value>Entrez votre email et nous vous enverrons un lien sécurisé.</value>
+  </data>
+  <data name="SendResetLink" xml:space="preserve">
+    <value>ENVOYER LE LIEN</value>
+  </data>
+  <data name="BackToLogin" xml:space="preserve">
+    <value>Retour à la connexion</value>
+  </data>
+  <data name="PersonalInfo" xml:space="preserve">
+    <value>Infos Personnelles</value>
+  </data>
+  <data name="Shipping" xml:space="preserve">
+    <value>Livraison</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Sécurité</value>
+  </data>
+  <data name="Phone" xml:space="preserve">
+    <value>Téléphone</value>
+  </data>
+  <data name="StreetAddress" xml:space="preserve">
+    <value>Adresse postale</value>
+  </data>
+  <data name="City" xml:space="preserve">
+    <value>Ville</value>
+  </data>
+  <data name="State" xml:space="preserve">
+    <value>État / Province</value>
+  </data>
+  <data name="ZipCode" xml:space="preserve">
+    <value>Code Postal</value>
+  </data>
+  <data name="Country" xml:space="preserve">
+    <value>Pays</value>
+  </data>
+  <data name="SaveChanges" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="UpdateAddress" xml:space="preserve">
+    <value>Mettre à jour l'adresse</value>
+  </data>
+  <data name="LastChanged" xml:space="preserve">
+    <value>Modifié récemment</value>
+  </data>
+  <data name="ChangePassword" xml:space="preserve">
+    <value>Changer le mot de passe</value>
+  </data>
+  <data name="ProfileUpdatedSuccess" xml:space="preserve">
+    <value>Profil mis à jour avec succès</value>
+  </data>
+  <data name="AddressUpdatedSuccess" xml:space="preserve">
+    <value>Adresse de livraison mise à jour</value>
+  </data>
+  <data name="ErrorSaving" xml:space="preserve">
+    <value>Erreur lors de l'enregistrement</value>
+  </data>
+  <data name="AdminPanel" xml:space="preserve">
+    <value>Panneau d'Administration</value>
+  </data>
+  <data name="BackToStore" xml:space="preserve">
+    <value>Retour à la boutique</value>
+  </data>
+  <data name="Management" xml:space="preserve">
+    <value>Gestion</value>
+  </data>
+  <data name="Users" xml:space="preserve">
+    <value>Utilisateurs</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Rôles</value>
+  </data>
+  <data name="Products" xml:space="preserve">
+    <value>Produits</value>
+  </data>
+  <data name="Orders" xml:space="preserve">
+    <value>Commandes</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>Système</value>
+  </data>
+  <data name="GlobalSettings" xml:space="preserve">
+    <value>Paramètres globaux</value>
+  </data>
+  <data name="RoleManagement" xml:space="preserve">
+    <value>Gestion des rôles</value>
+  </data>
+  <data name="AddNewRole" xml:space="preserve">
+    <value>Ajouter un nouveau rôle</value>
+  </data>
+  <data name="RoleName" xml:space="preserve">
+    <value>Nom du rôle</value>
+  </data>
+  <data name="CreateRole" xml:space="preserve">
+    <value>Créer le rôle</value>
+  </data>
+  <data name="Id" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="RoleCreatedSuccess" xml:space="preserve">
+    <value>Le rôle {0} a été créé avec succès.</value>
+  </data>
+  <data name="RoleDeletedSuccess" xml:space="preserve">
+    <value>Le rôle a été supprimé.</value>
+  </data>
+  <data name="ErrorDeletingRole" xml:space="preserve">
+    <value>Impossible de supprimer le rôle.</value>
+  </data>
+  <data name="CreateNewUser" xml:space="preserve">
+    <value>Créer un nouvel utilisateur</value>
+  </data>
+  <data name="TemporaryPassword" xml:space="preserve">
+    <value>Mot de passe temporaire</value>
+  </data>
+  <data name="TempPasswordHelper" xml:space="preserve">
+    <value>L'utilisateur devra le changer après la première connexion.</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="ActivateImmediately" xml:space="preserve">
+    <value>Activer le compte immédiatement</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Creating" xml:space="preserve">
+    <value>Création en cours...</value>
+  </data>
+  <data name="UserCreatedSuccess" xml:space="preserve">
+    <value>Utilisateur {0} créé avec succès.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Une erreur inattendue est survenue.</value>
+  </data>
+  <data name="BanDuration" xml:space="preserve">
+    <value>Durée du bannissement</value>
+  </data>
+  <data name="OneDay" xml:space="preserve">
+    <value>24 Heures</value>
+  </data>
+  <data name="OneWeek" xml:space="preserve">
+    <value>1 Semaine</value>
+  </data>
+  <data name="OneMonth" xml:space="preserve">
+    <value>1 Mois</value>
+  </data>
+  <data name="OneYear" xml:space="preserve">
+    <value>1 An</value>
+  </data>
+  <data name="Permanent" xml:space="preserve">
+    <value>Permanent</value>
+  </data>
+  <data name="BanWarning" xml:space="preserve">
+    <value>L'utilisateur sera immédiatement déconnecté et ne pourra plus accéder à la plateforme.</value>
+  </data>
+  <data name="ConfirmBan" xml:space="preserve">
+    <value>Confirmer le bannissement</value>
+  </data>
+  <data name="UserBannedSuccess" xml:space="preserve">
+    <value>Utilisateur banni pour {0} jours.</value>
+  </data>
+  <data name="ResettingPasswordFor" xml:space="preserve">
+    <value>Réinitialisation du mot de passe pour</value>
+  </data>
+  <data name="ActionCannotBeUndone" xml:space="preserve">
+    <value>Cette action est irréversible.</value>
+  </data>
+  <data name="NewPassword" xml:space="preserve">
+    <value>Nouveau mot de passe</value>
+  </data>
+  <data name="PasswordRequired" xml:space="preserve">
+    <value>Le mot de passe est requis.</value>
+  </data>
+  <data name="PasswordResetSuccess" xml:space="preserve">
+    <value>Mot de passe réinitialisé avec succès.</value>
+  </data>
+  <data name="Branding" xml:space="preserve">
+    <value>Marque</value>
+  </data>
+  <data name="SiteName" xml:space="preserve">
+    <value>Nom du site</value>
+  </data>
+  <data name="SiteDescription" xml:space="preserve">
+    <value>Description SEO</value>
+  </data>
+  <data name="LogoUrl" xml:space="preserve">
+    <value>URL du logo</value>
+  </data>
+  <data name="ContactInfo" xml:space="preserve">
+    <value>Infos contact</value>
+  </data>
+  <data name="SupportEmail" xml:space="preserve">
+    <value>Email support</value>
+  </data>
+  <data name="SupportPhone" xml:space="preserve">
+    <value>Téléphone support</value>
+  </data>
+  <data name="PhysicalAddress" xml:space="preserve">
+    <value>Adresse physique</value>
+  </data>
+  <data name="BusinessLogic" xml:space="preserve">
+    <value>Logique métier</value>
+  </data>
+  <data name="TaxRate" xml:space="preserve">
+    <value>Taux de taxe (Décimal)</value>
+  </data>
+  <data name="Currency" xml:space="preserve">
+    <value>Symbole monétaire</value>
+  </data>
+  <data name="FreeShippingThreshold" xml:space="preserve">
+    <value>Seuil livraison gratuite</value>
+  </data>
+  <data name="AllowRegistrations" xml:space="preserve">
+    <value>Autoriser les inscriptions</value>
+  </data>
+  <data name="MaintenanceMode" xml:space="preserve">
+    <value>Mode maintenance</value>
+  </data>
+  <data name="SettingsUpdated" xml:space="preserve">
+    <value>Paramètres mis à jour avec succès.</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>PRIORITÉ</value>
+  </data>
+  <data name="Sale" xml:space="preserve">
+    <value>SOLDE</value>
+  </data>
+  <data name="AddToCart" xml:space="preserve">
+    <value>Ajouter au panier</value>
+  </data>
+  <data name="ViewDetails" xml:space="preserve">
+    <value>Voir détails</value>
+  </data>
+  <data name="NoImage" xml:space="preserve">
+    <value>Aucune image</value>
+  </data>
+  <data name="PriorityStream" xml:space="preserve">
+    <value>Flux Prioritaire</value>
+  </data>
+  <data name="HeroSubtitle" xml:space="preserve">
+    <value>MATÉRIEL NOUVELLE GÉNÉRATION</value>
+  </data>
+  <data name="HeroTitleStart" xml:space="preserve">
+    <value>L'avenir de</value>
+  </data>
+  <data name="HeroTitleEnd" xml:space="preserve">
+    <value>l'informatique.</value>
+  </data>
+  <data name="HeroDescription" xml:space="preserve">
+    <value>Découvrez des technologies haute performance conçues pour les innovateurs. Livraison rapide, authenticité vérifiée.</value>
+  </data>
+  <data name="Explore" xml:space="preserve">
+    <value>EXPLORER</value>
+  </data>
+  <data name="Deals" xml:space="preserve">
+    <value>OFFRES</value>
+  </data>
+  <data name="WhyChooseUs" xml:space="preserve">
+    <value>Pourquoi {0} ?</value>
+  </data>
+  <data name="FeaturesDescription" xml:space="preserve">
+    <value>Redéfinir le paysage du commerce électronique grâce à la précision technique et la passion de la communauté.</value>
+  </data>
+  <data name="InstantFlowTitle" xml:space="preserve">
+    <value>Flux Instantané</value>
+  </data>
+  <data name="InstantFlowDesc" xml:space="preserve">
+    <value>Protocoles d'expédition rapides pour l'ère numérique, propulsés par la logistique mondiale.</value>
+  </data>
+  <data name="ShieldQualityTitle" xml:space="preserve">
+    <value>Qualité Bouclier</value>
+  </data>
+  <data name="ShieldQualityDesc" xml:space="preserve">
+    <value>Chaque produit subit un protocole d'inspection en 15 points avant de quitter notre boutique. Garanti.</value>
+  </data>
+  <data name="TechFirstTitle" xml:space="preserve">
+    <value>La Tech d'Abord</value>
+  </data>
+  <data name="TechFirstDesc" xml:space="preserve">
+    <value>Accès exclusif à du matériel en édition limitée et à des gadgets que vous ne trouverez nulle part ailleurs.</value>
+  </data>
+  <data name="JoinCollectiveTitle" xml:space="preserve">
+    <value>Rejoignez le Collectif.</value>
+  </data>
+  <data name="JoinCollectiveDesc" xml:space="preserve">
+    <value>Recevez des alertes immédiates sur les sorties techniques, les articles exclusifs et les événements.</value>
+  </data>
+  <data name="Subscribe" xml:space="preserve">
+    <value>S'ABONNER</value>
+  </data>
+  <data name="OrderStatus_Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="OrderStatus_Processing" xml:space="preserve">
+    <value>En traitement</value>
+  </data>
+  <data name="OrderStatus_Shipped" xml:space="preserve">
+    <value>Expédié</value>
+  </data>
+  <data name="OrderStatus_Delivered" xml:space="preserve">
+    <value>Livré</value>
+  </data>
+  <data name="OrderStatus_Cancelled" xml:space="preserve">
+    <value>Annulé</value>
+  </data>
+  <data name="OrderStatus_Returned" xml:space="preserve">
+    <value>Retourné</value>
+  </data>
+  <data name="PaymentStatus_Unpaid" xml:space="preserve">
+    <value>Non payé</value>
+  </data>
+  <data name="PaymentStatus_Paid" xml:space="preserve">
+    <value>Payé</value>
+  </data>
+  <data name="PaymentStatus_Refunded" xml:space="preserve">
+    <value>Remboursé</value>
+  </data>
+  <data name="PaymentStatus_Failed" xml:space="preserve">
+    <value>Échec</value>
+  </data>
+  <data name="ItemsFound" xml:space="preserve">
+    <value>articles trouvés</value>
+  </data>
+  <data name="NoProductsFound" xml:space="preserve">
+    <value>Aucun produit trouvé correspondant à vos critères.</value>
+  </data>
+  <data name="AddedToCart" xml:space="preserve">
+    <value>ajouté au panier</value>
+  </data>
+  <data name="ShoppingCart" xml:space="preserve">
+    <value>Panier d'achat</value>
+  </data>
+  <data name="CartEmpty" xml:space="preserve">
+    <value>Votre panier est vide</value>
+  </data>
+  <data name="StartShopping" xml:space="preserve">
+    <value>Commencer les achats</value>
+  </data>
+  <data name="OrderSummary" xml:space="preserve">
+    <value>Résumé de la commande</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Sous-total</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Checkout" xml:space="preserve">
+    <value>PAIEMENT</value>
+  </data>
+  <data name="ProceedToCheckout" xml:space="preserve">
+    <value>Procéder au paiement...</value>
+  </data>
+  <data name="Specifications" xml:space="preserve">
+    <value>Caractéristiques</value>
+  </data>
+  <data name="MarkAsPriority" xml:space="preserve">
+    <value>Marquer comme prioritaire</value>
+  </data>
+  <data name="ProductCreatedSuccess" xml:space="preserve">
+    <value>Produit créé avec succès.</value>
+  </data>
+  <data name="ConfirmDeleteProduct" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer {0} ?</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="BanUser" xml:space="preserve">
+    <value>Bannir l'Utilisateur</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>Gestion des Utilisateurs</value>
+  </data>
+  <data name="CreateUser" xml:space="preserve">
+    <value>Créer un utilisateur</value>
+  </data>
+  <data name="RegisteredAccounts" xml:space="preserve">
+    <value>Comptes Enregistrés</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="EditDetails" xml:space="preserve">
+    <value>Modifier les Détails</value>
+  </data>
+  <data name="ResetPassword" xml:space="preserve">
+    <value>Réinitialiser le Mot de Passe</value>
+  </data>
+  <data name="UnbanUser" xml:space="preserve">
+    <value>Débannir l'Utilisateur</value>
+  </data>
+  <data name="Upload" xml:space="preserve">
+    <value>Télécharger</value>
+  </data>
+  <data name="Or" xml:space="preserve">
+    <value>Ou</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>Ajouter fichiers</value>
+  </data>
+  <data name="AddExternalUrl" xml:space="preserve">
+    <value>Coller le lien externe...</value>
+  </data>
+  <data name="Uploading" xml:space="preserve">
+    <value>Téléchargement...</value>
+  </data>
+  <data name="ProcessingOrder" xml:space="preserve">
+    <value>Traitement de votre commande...</value>
+  </data>
+  <data name="PaymentMethod" xml:space="preserve">
+    <value>Moyen de paiement</value>
+  </data>
+  <data name="CashOnDelivery" xml:space="preserve">
+    <value>Paiement à la livraison</value>
+  </data>
+  <data name="PayUponReceipt" xml:space="preserve">
+    <value>Payez en toute sécurité à la réception.</value>
+  </data>
+  <data name="ShippingFee" xml:space="preserve">
+    <value>Frais de livraison</value>
+  </data>
+  <data name="Free" xml:space="preserve">
+    <value>GRATUIT</value>
+  </data>
+  <data name="ConfirmOrder" xml:space="preserve">
+    <value>CONFIRMER LA COMMANDE</value>
+  </data>
+  <data name="OrderPlacedSuccess" xml:space="preserve">
+    <value>Commande passée avec succès !</value>
+  </data>
+  <data name="AddressRequired" xml:space="preserve">
+    <value>Veuillez mettre à jour votre adresse de livraison.</value>
+  </data>
+  <data name="AccountRestricted" xml:space="preserve">
+    <value>Votre compte est restreint. Contactez le support.</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="ValidateOrder" xml:space="preserve">
+    <value>Valider la commande</value>
+  </data>
+  <data name="CancelOrder" xml:space="preserve">
+    <value>Annuler la commande</value>
+  </data>
+  <data name="MarkShipped" xml:space="preserve">
+    <value>Marquer comme expédié</value>
+  </data>
+  <data name="StatusUpdated" xml:space="preserve">
+    <value>Statut de la commande mis à jour avec succès.</value>
+  </data>
+  <data name="Delete_Confirm_Title" xml:space="preserve">
+    <value>Confirmer la suppression</value>
+  </data>
+  <data name="Delete_Soft_Warning" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer cet élément ({0}) ? Il sera déplacé vers les archives.</value>
+  </data>
+  <data name="Delete_Hard_Warning" xml:space="preserve">
+    <value>Vous êtes sur le point de supprimer définitivement cet enregistrement.</value>
+  </data>
+  <data name="Delete_Irreversible_Message" xml:space="preserve">
+    <value>Cette action est irréversible. Toutes les données associées peuvent être perdues.</value>
+  </data>
+  <data name="Delete_Tooltip_Soft" xml:space="preserve">
+    <value>Archiver / Supprimer</value>
+  </data>
+  <data name="Delete_Tooltip_Hard" xml:space="preserve">
+    <value>Supprimer définitivement</value>
+  </data>
+  <data name="Delete_Success" xml:space="preserve">
+    <value>Élément supprimé avec succès.</value>
+  </data>
+  <data name="Delete_Error" xml:space="preserve">
+    <value>Échec de la suppression. L'élément a peut-être déjà été supprimé.</value>
+  </data>
+  <data name="Action_Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Action_Delete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="IsVisible" xml:space="preserve">
+    <value>Visible en boutique</value>
+  </data>
+  <data name="IsVisibleHelper" xml:space="preserve">
+    <value>Basculer pour masquer ce produit du catalogue public (Mode Brouillon).</value>
+  </data>
+  <data name="IsOutOfStock" xml:space="preserve">
+    <value>Forcer la rupture de stock</value>
+  </data>
+  <data name="IsOutOfStockHelper" xml:space="preserve">
+    <value>Afficher comme 'Rupture de stock' même si la quantité &gt; 0.</value>
+  </data>
+  <data name="Status_Hidden" xml:space="preserve">
+    <value>Masqué</value>
+  </data>
+  <data name="Status_Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="Status_InStock" xml:space="preserve">
+    <value>En stock</value>
+  </data>
+  <data name="Status_OutOfStock" xml:space="preserve">
+    <value>Rupture de stock</value>
+  </data>
+  <data name="ProductVisibility" xml:space="preserve">
+    <value>Visibilité et Disponibilité</value>
+  </data>
+  <data name="AllOrders" xml:space="preserve">
+    <value>Toutes les commandes</value>
+  </data>
+  <data name="Status_Pending" xml:space="preserve">
+    <value>EN ATTENTE</value>
+  </data>
+  <data name="Status_Processing" xml:space="preserve">
+    <value>En traitement</value>
+  </data>
+  <data name="Status_Shipped" xml:space="preserve">
+    <value>Expédiée</value>
+  </data>
+  <data name="Status_Delivered" xml:space="preserve">
+    <value>Livrée</value>
+  </data>
+  <data name="Status_Cancelled" xml:space="preserve">
+    <value>Annulée</value>
+  </data>
+  <data name="Status_Returned" xml:space="preserve">
+    <value>Retournée</value>
+  </data>
+  <data name="MarkDelivered" xml:space="preserve">
+    <value>Marquer comme livré</value>
+  </data>
+  <data name="SearchOrderPlaceholder" xml:space="preserve">
+    <value>Rechercher par N° commande, Nom ou Téléphone...</value>
+  </data>
+  <data name="ManageOrdersDesc" xml:space="preserve">
+    <value>Consultez et gérez les commandes clients à travers toutes les étapes de traitement.</value>
+  </data>
+  <data name="ProductUnavailable" xml:space="preserve">
+    <value>Produit indisponible</value>
+  </data>
+  <data name="ProductUnavailableDesc" xml:space="preserve">
+    <value>Cet article est actuellement masqué, en rupture de stock ou a été retiré de notre catalogue.</value>
+  </data>
+  <data name="ReturnToCatalog" xml:space="preserve">
+    <value>Retour au catalogue</value>
+  </data>
+  <data name="TotalRevenue" xml:space="preserve">
+    <value>Revenu Total</value>
+  </data>
+  <data name="BasedOnCompletedOrders" xml:space="preserve">
+    <value>Basé sur les commandes terminées</value>
+  </data>
+  <data name="ActiveOrders" xml:space="preserve">
+    <value>Commandes Actives</value>
+  </data>
+  <data name="PendingProcessing" xml:space="preserve">
+    <value>En attente de traitement</value>
+  </data>
+  <data name="TotalCustomers" xml:space="preserve">
+    <value>Total des Clients</value>
+  </data>
+  <data name="TotalProducts" xml:space="preserve">
+    <value>Total des Produits</value>
+  </data>
+  <data name="ItemsLowStock" xml:space="preserve">
+    <value>articles en rupture de stock</value>
+  </data>
+  <data name="StockHealthy" xml:space="preserve">
+    <value>Le stock est sain</value>
+  </data>
+  <data name="RecentOrders" xml:space="preserve">
+    <value>Commandes Récentes</value>
+  </data>
+  <data name="ViewAll" xml:space="preserve">
+    <value>Voir Tout</value>
+  </data>
+  <data name="OrderNumber" xml:space="preserve">
+    <value>Numéro de Commande</value>
+  </data>
+  <data name="Customer" xml:space="preserve">
+    <value>Client</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="NoOrdersFound" xml:space="preserve">
+    <value>Aucune commande trouvée.</value>
+  </data>
+  <data name="SearchUserPlaceholder" xml:space="preserve">
+    <value>Rechercher un email, nom ou rôle...</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>Utilisateur</value>
+  </data>
+  <data name="NoRoles" xml:space="preserve">
+    <value>Aucun Rôle</value>
+  </data>
+  <data name="ManageRoles" xml:space="preserve">
+    <value>Gérer les Rôles</value>
+  </data>
+  <data name="Status_Banned" xml:space="preserve">
+    <value>BANNI</value>
+  </data>
+  <data name="Status_Active" xml:space="preserve">
+    <value>ACTIF</value>
+  </data>
+  <data name="Status_VIP" xml:space="preserve">
+    <value>VIP</value>
+  </data>
+  <data name="UserUnbannedSuccess" xml:space="preserve">
+    <value>L'utilisateur {0} a été débanni avec succès.</value>
+  </data>
+  <data name="ManageUserRoles" xml:space="preserve">
+    <value>Gérer les Rôles de l'Utilisateur</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>Utilisateur introuvable.</value>
+  </data>
+  <data name="ManageRolesDesc" xml:space="preserve">
+    <value>Attribuer ou supprimer des rôles pour</value>
+  </data>
+  <data name="SaveRoles" xml:space="preserve">
+    <value>Enregistrer les Rôles</value>
+  </data>
+  <data name="RolesUpdatedSuccess" xml:space="preserve">
+    <value>Les rôles de l'utilisateur ont été mis à jour avec succès.</value>
+  </data>
+  <data name="ErrorUpdatingRoles" xml:space="preserve">
+    <value>Une erreur est survenue lors de la mise à jour des rôles.</value>
+  </data>
+  <data name="DeliveryMethod" xml:space="preserve">
+    <value>Mode de livraison</value>
+  </data>
+  <data name="HomeDelivery" xml:space="preserve">
+    <value>Livraison à domicile</value>
+  </data>
+  <data name="DeliverToDoor" xml:space="preserve">
+    <value>Livrer directement à votre porte</value>
+  </data>
+  <data name="PickupDelivery" xml:space="preserve">
+    <value>Retrait en point relais</value>
+  </data>
+  <data name="DeliverToNearestBureau" xml:space="preserve">
+    <value>Livrer au bureau de livraison le plus proche</value>
+  </data>
+  <data name="ShippingAndDelivery" xml:space="preserve">
+    <value>Expédition et livraison</value>
+  </data>
+  <data name="EnableHomeDelivery" xml:space="preserve">
+    <value>Activer la livraison à domicile</value>
+  </data>
+  <data name="BaseHomeDeliveryFee" xml:space="preserve">
+    <value>Frais de base pour livraison à domicile</value>
+  </data>
+  <data name="EnablePickupDelivery" xml:space="preserve">
+    <value>Activer le retrait en point relais</value>
+  </data>
+  <data name="BasePickupDeliveryFee" xml:space="preserve">
+    <value>Frais de base pour retrait en point relais</value>
+  </data>
+  <data name="WeightMultiplierFee" xml:space="preserve">
+    <value>Frais de poids (par Kg)</value>
+  </data>
+  <data name="DistanceMultiplierFee" xml:space="preserve">
+    <value>Frais de distance (par Km)</value>
+  </data>
+  <data name="OrderDetails" xml:space="preserve">
+    <value>Détails de la commande</value>
+  </data>
+  <data name="CustomerInfo" xml:space="preserve">
+    <value>Informations client</value>
+  </data>
+  <data name="CustomerName" xml:space="preserve">
+    <value>Nom du client</value>
+  </data>
+  <data name="CustomerPhone" xml:space="preserve">
+    <value>Numéro de téléphone</value>
+  </data>
+  <data name="ShippingAddress" xml:space="preserve">
+    <value>Adresse de livraison</value>
+  </data>
+  <data name="OrderItems" xml:space="preserve">
+    <value>Articles de commande</value>
+  </data>
+  <data name="SearchProduct" xml:space="preserve">
+    <value>Rechercher un produit à ajouter</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="Product" xml:space="preserve">
+    <value>Produit</value>
+  </data>
+  <data name="UnitPrice" xml:space="preserve">
+    <value>Prix ​​unitaire</value>
+  </data>
+  <data name="Quantity" xml:space="preserve">
+    <value>Quantité</value>
+  </data>
+  <data name="StatusAndTotals" xml:space="preserve">
+    <value>Statut et totaux</value>
+  </data>
+  <data name="PaymentStatus" xml:space="preserve">
+    <value>Statut du paiement</value>
+  </data>
+  <data name="Tax" xml:space="preserve">
+    <value>Impôt</value>
+  </data>
+  <data name="GrandTotal" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="OrderUpdatedSuccess" xml:space="preserve">
+    <value>Commande mise à jour avec succès.</value>
+  </data>
+
+	<data name="PaymentMethod" xml:space="preserve">
+    <value>Méthode de paiement</value>
+  </data>
+	<data name="CashOnDelivery" xml:space="preserve">
+    <value>Paiement à la livraison</value>
+  </data>
+	<data name="PayUponReceipt" xml:space="preserve">
+    <value>Payez à la réception de votre commande</value>
+  </data>
+	<data name="ProcessingOrder" xml:space="preserve">
+    <value>Traitement de votre commande...</value>
+  </data>
+	<data name="DoNotCloseWindow" xml:space="preserve">
+    <value>Veuillez ne pas fermer cette fenêtre.</value>
+  </data>
+	<data name="ShippingInfo" xml:space="preserve">
+    <value>Informations d'expédition</value>
+  </data>
+	<data name="SecureCheckoutNote" xml:space="preserve">
+    <value>Votre connexion est sécurisée et cryptée.</value>
+  </data>
+	<data name="ConfirmOrder" xml:space="preserve">
+    <value>Confirmer la commande</value>
+  </data>
+	<data name="Processing" xml:space="preserve">
+    <value>En cours...</value>
+  </data>
+	<data name="Workflow" xml:space="preserve">
+    <value>Flux de travail</value>
+  </data>
+	<data name="GrandTotal" xml:space="preserve">
+    <value>Total Général</value>
+  </data>
+	<data name="OrderItems" xml:space="preserve">
+    <value>Articles de la commande</value>
+  </data>
+	<data name="SearchProduct" xml:space="preserve">
+    <value>Rechercher un produit...</value>
+  </data>
+
+	<data name="InvalidCredentials" xml:space="preserve"><value>Email ou mot de passe invalide.</value></data>
+	<data name="AccountBanned" xml:space="preserve"><value>Votre compte a été banni suite à une violation de nos conditions.</value></data>
+	<data name="AccountPendingApproval" xml:space="preserve"><value>Votre compte est actuellement en attente d'approbation administrative.</value></data>
+	<data name="AccountLockedOut" xml:space="preserve"><value>Votre compte est temporairement verrouillé suite à plusieurs tentatives de connexion échouées.</value></data>
+	<data name="PasswordsDoNotMatch" xml:space="preserve"><value>Les mots de passe fournis ne correspondent pas.</value></data>
+	<data name="AccountCreatedSuccess" xml:space="preserve"><value>Compte créé avec succès ! Veuillez vous connecter.</value></data>
+	<data name="PasswordRequirements" xml:space="preserve"><value>Minimum 6 caractères. Au moins 1 caractère unique.</value></data>
+	
+</root>

@@ -1,0 +1,221 @@
+﻿@page "/admin/dashboard"
+@layout MBET.web.Components.Layout.AdminLayout
+
+@using MBET.Core.Entities
+@using MBET.Core.Entities.Identity
+@using MBET.Core.Interfaces
+@using MBET.Core.Enums
+@using MBET.Shared.Resources
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Localization
+
+@inject IOrderRepository OrderRepo
+@inject IProductRepository ProductRepo
+@inject UserManager<ApplicationUser> UserManager
+@inject ISettingsService SettingsService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<L> L
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator,ShopManager")]
+
+<PageTitle>@L["Dashboard"] | @L["AdminPanel"]</PageTitle>
+
+<MudText Typo="Typo.h4" Class="font-bold mb-6">@L["Dashboard"]</MudText>
+
+@if (_loading)
+{
+    <div class="d-flex justify-center my-16">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </div>
+}
+else
+{
+    <!-- Stats Grid -->
+    <MudGrid Spacing="6" Class="mb-8">
+        <!-- Revenue Card (Redirects to Orders) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-6 rounded-xl border border-white-10 d-flex flex-column gap-2 bg-surface dashboard-card" @onclick='() => Navigation.NavigateTo("/admin/orders")'>
+                <div class="d-flex justify-space-between align-start">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary uppercase font-bold">@L["TotalRevenue"]</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" />
+                </div>
+                <MudText Typo="Typo.h4" Class="font-bold text-success">@_totalRevenue.ToString("N0") <span style="font-size: 0.6em;">@_currencySymbol</span></MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["BasedOnCompletedOrders"]</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Active Orders Card (Redirects to Orders) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-6 rounded-xl border border-white-10 d-flex flex-column gap-2 bg-surface dashboard-card" @onclick='() => Navigation.NavigateTo("/admin/orders")'>
+                <div class="d-flex justify-space-between align-start">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary uppercase font-bold">@L["ActiveOrders"]</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" />
+                </div>
+                <MudText Typo="Typo.h4" Class="font-bold">@_activeOrdersCount</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@_pendingOrdersCount @L["PendingProcessing"]</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Customers Card (Redirects to Users) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-6 rounded-xl border border-white-10 d-flex flex-column gap-2 bg-surface dashboard-card" @onclick='() => Navigation.NavigateTo("/admin/users")'>
+                <div class="d-flex justify-space-between align-start">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary uppercase font-bold">@L["TotalCustomers"]</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" />
+                </div>
+                <MudText Typo="Typo.h4" Class="font-bold">@_totalCustomers</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["RegisteredAccounts"]</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Inventory Card (Redirects to Products) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-6 rounded-xl border border-white-10 d-flex flex-column gap-2 bg-surface dashboard-card" @onclick='() => Navigation.NavigateTo("/admin/products")'>
+                <div class="d-flex justify-space-between align-start">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary uppercase font-bold">@L["TotalProducts"]</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Warning" />
+                </div>
+                <MudText Typo="Typo.h4" Class="font-bold">@_totalProducts</MudText>
+                @if (_lowStockCount > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error" Class="font-bold">@_lowStockCount @L["ItemsLowStock"]</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Success">@L["StockHealthy"]</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Recent Activity -->
+    <MudPaper Class="pa-6 rounded-xl border border-white-10 bg-surface">
+        <div class="d-flex justify-space-between align-center mb-6">
+            <MudText Typo="Typo.h6" Class="font-bold">@L["RecentOrders"]</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward" Href="/admin/orders">@L["ViewAll"]</MudButton>
+        </div>
+
+        <MudTable Items="@_recentOrders" Hover="true" Elevation="0" Class="bg-transparent" Loading="@_loading">
+            <HeaderContent>
+                <MudTh>@L["OrderNumber"]</MudTh>
+                <MudTh>@L["Customer"]</MudTh>
+                <MudTh>@L["Date"]</MudTh>
+                <MudTh>@L["Status"]</MudTh>
+                <MudTh>@L["Total"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["OrderNumber"]" Class="font-bold">
+                    <MudLink Href="/admin/orders" Underline="Underline.None" Color="Color.Default">#@context.OrderNumber</MudLink>
+                </MudTd>
+                <MudTd DataLabel="@L["Customer"]">
+                    <div class="d-flex align-center gap-2">
+                        <MudAvatar Size="Size.Small" Color="Color.Primary">@(string.IsNullOrEmpty(context.CustomerName) ? "?" : context.CustomerName[0].ToString().ToUpper())</MudAvatar>
+                        @context.CustomerName
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="@L["Date"]">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                <MudTd DataLabel="@L["Status"]">
+                    <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small" Variant="Variant.Filled">
+                        @L[$"Status_{context.Status}"]
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="@L["Total"]" Class="font-bold">
+                    @context.GrandTotal.ToString("N0") <span style="font-size: 0.75em;">@_currencySymbol</span>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary py-4 text-center">@L["NoOrdersFound"]</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+<style>
+    .dashboard-card {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--mud-palette-primary) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+</style>
+
+@code {
+    private bool _loading = true;
+
+    // Actual Data Variables
+    private decimal _totalRevenue = 0;
+    private int _activeOrdersCount = 0;
+    private int _pendingOrdersCount = 0;
+    private int _totalCustomers = 0;
+    private int _totalProducts = 0;
+    private int _lowStockCount = 0;
+    private string _currencySymbol = "$";
+
+    private List<Order> _recentOrders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            // 1. Fetch Global Settings (for currency symbol)
+            var settings = await SettingsService.GetSettingsAsync();
+            if (settings != null)
+            {
+                _currencySymbol = settings.CurrencySymbol;
+            }
+
+            // 2. Aggregate Order Data
+            var allOrders = await OrderRepo.GetAllOrdersAsync();
+
+            _totalRevenue = allOrders
+                .Where(o => o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Shipped)
+                .Sum(o => o.GrandTotal);
+
+            _activeOrdersCount = allOrders
+                .Count(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Processing || o.Status == OrderStatus.Shipped);
+
+            _pendingOrdersCount = allOrders
+                .Count(o => o.Status == OrderStatus.Pending);
+
+            _recentOrders = allOrders
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(5)
+                .ToList();
+
+            // 3. Aggregate Product Data
+            var productsResult = await ProductRepo.GetProductsAsync(pageSize: 1000);
+            var products = productsResult.Items;
+
+            _totalProducts = products.Count();
+            _lowStockCount = products.Count(p => p.StockQuantity <= 5 || p.IsOutOfStock); // Using 5 as threshold for "Low Stock"
+
+            // 4. Aggregate User Data
+            _totalCustomers = UserManager.Users.Count();
+        }
+        catch (Exception)
+        {
+            // Log silently or notify via Snackbar if preferred
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Color GetStatusColor(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => Color.Warning,
+        OrderStatus.Processing => Color.Info,
+        OrderStatus.Shipped => Color.Primary,
+        OrderStatus.Delivered => Color.Success,
+        OrderStatus.Cancelled => Color.Error,
+        OrderStatus.Returned => Color.Dark,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,50 @@
+﻿@using MudBlazor
+
+<!--
+    Isolated Image Component
+    Responsible for:
+    1. Enforcing Square Aspect Ratio (1:1)
+    2. Ensuring the full image is visible (ObjectFit.Contain)
+    3. Providing a consistent background for transparent images
+-->
+<div class="product-image-container rounded-xl">
+    <MudImage Src="@Src"
+              Alt="@Alt"
+              ObjectFit="ObjectFit.Contain"
+              Class="product-image" />
+</div>
+
+<style>
+    .product-image-container {
+        position: relative;
+        width: 100%;
+        /* Enforce 1:1 Aspect Ratio */
+        aspect-ratio: 1 / 1;
+        /* Dark background to handle transparent PNGs or letterboxing */
+        background-color: #0f1218;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.5s ease;
+        display: block;
+    }
+
+    /* Zoom Effect:
+           We target the image when the *parent* (the card) is hovered.
+           This requires the parent to have the 'hover-card' class.
+        */
+    :global(.hover-card:hover) .product-image {
+        transform: scale(1.1);
+    }
+</style>
+
+@code {
+    [Parameter] public string? Src { get; set; }
+    [Parameter] public string? Alt { get; set; }
+}

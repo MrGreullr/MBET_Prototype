@@ -1,0 +1,238 @@
+﻿@page "/admin/system-health"
+@layout MBET.web.Components.Layout.AdminLayout
+
+@using Microsoft.AspNetCore.Hosting
+@using MBET.Core.Interfaces
+@using Microsoft.AspNetCore.Components.Forms
+@using IO = global::System.IO 
+
+@inject IWebHostEnvironment Environment
+@inject IStorageService StorageService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator")]
+
+<PageTitle>System Diagnostics | Admin</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">System Health & Storage Diagnostics</MudText>
+    
+    <MudGrid>
+        <!-- 1. Environment Info -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Server Environment</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudSimpleTable Hover="true" Dense="true" Striped="true">
+                        <tbody>
+                            <tr>
+                                <td><strong>App Name</strong></td>
+                                <td>@Environment.ApplicationName</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Environment</strong></td>
+                                <td>@Environment.EnvironmentName</td>
+                            </tr>
+                            <tr>
+                                <td><strong>WebRootPath</strong></td>
+                                <td style="word-break: break-all;">@Environment.WebRootPath</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Base URI</strong></td>
+                                <td>@Nav.BaseUri</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- 2. Write Permission Test -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Write Permission Test</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Class="mb-2">Click to attempt writing a text file to <code>wwwroot/uploads/test.txt</code></MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RunWriteTest" Disabled="_isRunningTest">
+                        @(_isRunningTest ? "Testing..." : "Run Write Test")
+                    </MudButton>
+                    
+                    @if (!string.IsNullOrEmpty(_writeTestResult))
+                    {
+                        <MudAlert Severity="@_writeTestSeverity" Class="mt-2">@_writeTestResult</MudAlert>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- 3. Real Upload Debugger -->
+        <MudItem xs="12">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Image Upload Debugger</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Class="mb-4">Upload a small image. We will try to display it using 3 different path strategies.</MudText>
+                    
+                    <MudFileUpload T="IBrowserFile" FilesChanged="DebugUpload">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Upload Test Image
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+
+                    @if (_uploadDebugLog.Any())
+                    {
+                        <div class="mt-4 pa-4 rounded" style="background-color: #1e1e1e; font-family: monospace; color: #00ff00; max-height: 200px; overflow-y: auto;">
+                            @foreach(var log in _uploadDebugLog)
+                            {
+                                <div>> @log</div>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(_urlRaw))
+                    {
+                        <MudDivider Class="my-4"/>
+                        <MudText Typo="Typo.h6" Class="mb-2">Rendering Test</MudText>
+                        <MudGrid>
+                            <!-- Variant 1: Raw from Service -->
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-2 border-dashed border-2 mud-border-primary" Outlined="true">
+                                    <MudText Typo="Typo.caption" Class="font-bold">1. Service Result (Raw)</MudText>
+                                    <div class="d-flex justify-center my-2">
+                                        <img src="@_urlRaw" style="max-height: 80px; max-width: 100%;" alt="Failed" />
+                                    </div>
+                                    <MudText Typo="Typo.caption" Style="font-size: 0.7rem; word-break: break-all;">@_urlRaw</MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            <!-- Variant 2: Relative (No Slash) -->
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-2 border-dashed border-2 mud-border-secondary" Outlined="true">
+                                    <MudText Typo="Typo.caption" Class="font-bold">2. Relative (No Slash)</MudText>
+                                    <div class="d-flex justify-center my-2">
+                                        <img src="@_urlRelative" style="max-height: 80px; max-width: 100%;" alt="Failed" />
+                                    </div>
+                                    <MudText Typo="Typo.caption" Style="font-size: 0.7rem; word-break: break-all;">@_urlRelative</MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            <!-- Variant 3: Explicit Base URI -->
+                            <MudItem xs="4">
+                                <MudPaper Class="pa-2 border-dashed border-2 mud-border-info" Outlined="true">
+                                    <MudText Typo="Typo.caption" Class="font-bold">3. Explicit Base URI</MudText>
+                                    <div class="d-flex justify-center my-2">
+                                        <img src="@_urlWithBase" style="max-height: 80px; max-width: 100%;" alt="Failed" />
+                                    </div>
+                                    <MudText Typo="Typo.caption" Style="font-size: 0.7rem; word-break: break-all;">@_urlWithBase</MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private bool _isRunningTest;
+    private string _writeTestResult = "";
+    private Severity _writeTestSeverity = Severity.Info;
+    
+    private List<string> _uploadDebugLog = new();
+    
+    // Path Variants
+    private string _urlRaw = "";       // Exactly what StorageService returned
+    private string _urlRelative = "";  // "uploads/..." (No leading slash)
+    private string _urlWithBase = "";  // "https://site.com/sub/uploads/..."
+
+    private void RunWriteTest()
+    {
+        _isRunningTest = true;
+        try
+        {
+            // Use global::System.IO explicitly to avoid conflicts
+            var folder = IO.Path.Combine(Environment.WebRootPath, "uploads");
+            if (!IO.Directory.Exists(folder))
+            {
+                IO.Directory.CreateDirectory(folder);
+                _writeTestResult = "Created 'uploads' folder. ";
+            }
+
+            var filePath = IO.Path.Combine(folder, "write_test.txt");
+            IO.File.WriteAllText(filePath, $"Write test successful at {DateTime.UtcNow}");
+            
+            if (IO.File.Exists(filePath))
+            {
+                _writeTestResult += "Success! File written to disk.";
+                _writeTestSeverity = Severity.Success;
+                IO.File.Delete(filePath); // Cleanup
+            }
+            else
+            {
+                _writeTestResult = "Failed. Code ran but file not found on disk.";
+                _writeTestSeverity = Severity.Error;
+            }
+        }
+        catch (Exception ex)
+        {
+            _writeTestResult = $"Exception: {ex.Message}";
+            _writeTestSeverity = Severity.Error;
+        }
+        _isRunningTest = false;
+    }
+
+    private async Task DebugUpload(IBrowserFile file)
+    {
+        _uploadDebugLog.Clear();
+        _urlRaw = "";
+        
+        _uploadDebugLog.Add($"Starting upload of {file.Name}...");
+        
+        try
+        {
+            using var stream = file.OpenReadStream(10 * 1024 * 1024); // 10MB max
+            
+            // 1. Call Service
+            var url = await StorageService.UploadFileAsync(stream, file.Name, file.ContentType, "debug");
+            _urlRaw = url;
+            _uploadDebugLog.Add($"Service Returned: {url}");
+
+            // 2. Calculate Variants
+            _urlRelative = url.TrimStart('/', '\\');
+            var baseUri = Nav.BaseUri.TrimEnd('/');
+            _urlWithBase = $"{baseUri}/{_urlRelative}";
+
+            // 3. Verify Physical Existence
+            var physicalPath = IO.Path.Combine(Environment.WebRootPath, _urlRelative);
+            _uploadDebugLog.Add($"Checking Disk: {physicalPath}");
+            
+            if (IO.File.Exists(physicalPath))
+            {
+                _uploadDebugLog.Add("✅ PHYSICAL FILE FOUND on disk.");
+            }
+            else
+            {
+                _uploadDebugLog.Add("❌ PHYSICAL FILE MISSING. Check folder permissions.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _uploadDebugLog.Add($"❌ ERROR: {ex.Message}");
+        }
+    }
+}

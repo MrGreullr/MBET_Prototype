@@ -1,0 +1,228 @@
+﻿@page "/cart"
+@using MBET.Infrastructure.Services
+@using MBET.Infrastructure.Entities
+@using MBET.Core.Entities
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+@using MBET.Core.Interfaces
+
+
+
+@inject ISettingsService SettingsService
+@inject CartService CartService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<L> L
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-12 mb-16">
+    <MudText Typo="Typo.h3" Class="italic font-black mb-8">@L["ShoppingCart"]</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            @if (!_items.Any())
+            {
+                <MudPaper Class="pa-16 text-center rounded-xl glass-panel" Elevation="0">
+                    <MudIcon Icon="@Icons.Material.TwoTone.ShoppingCart" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+                    <MudText Typo="Typo.h5">@L["CartEmpty"]</MudText>
+                    <MudButton Href="/catalog" Variant="Variant.Text" Color="Color.Primary" Class="mt-4">@L["StartShopping"]</MudButton>
+                </MudPaper>
+            }
+            else
+            {
+                <MudStack Spacing="4">
+                    @foreach (var item in _items)
+                    {
+                        <MudPaper Class="pa-4 rounded-xl relative overflow-hidden transition-all hover-elevation" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                            <div class="d-flex gap-6 align-center">
+                                <!-- Image Thumbnail -->
+                                <MudImage Src="@(item.Product?.Images.FirstOrDefault(x => x.IsPrimary)?.ImageUrl ?? "https://via.placeholder.com/150")"
+                                          ObjectFit="ObjectFit.Cover"
+                                          Class="rounded-lg"
+                                          Width="100" Height="100" />
+
+                                <!-- Content -->
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-space-between align-start">
+                                        <div>
+                                            <MudText Typo="Typo.h6" Class="font-bold">@item.Product?.Title</MudText>
+                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@item.Product?.Category?.Name</MudText>
+
+                                            <!-- Stock Status -->
+                                            <div class="d-flex align-center gap-1 mt-1">
+                                                @if (item.Product != null)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" Color="@(item.Product.StockQuantity < 5 ? Color.Warning : Color.Success)" />
+                                                    <MudText Typo="Typo.caption" Color="@(item.Product.StockQuantity < 5 ? Color.Warning : Color.Success)">
+                                                        @(item.Product.StockQuantity < 5 ? $"{L["LowStock"]}: {item.Product.StockQuantity}" : $"{L["InStock"]}: {item.Product.StockQuantity}")
+                                                    </MudText>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <!-- Price -->
+                                        <MudText Typo="Typo.h6" Class="font-bold text-primary">@item.UnitPrice.ToString("N0") @_currencySymbol</MudText>
+
+                                    </div>
+
+                                    <div class="d-flex justify-space-between align-center mt-4">
+                                        <!-- Quantity Controls -->
+                                        <div class="d-flex align-center gap-2" style="background-color: var(--mud-palette-background-grey); padding: 4px; border-radius: 8px;">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => DecreaseQty(item))"
+                                                           Disabled="@(item.Quantity <= 1)" />
+
+                                            <input type="number"
+                                                   value="@item.Quantity"
+                                                   @onchange="@(e => UpdateQty(item, e.Value))"
+                                                   class="mud-typography-body1 text-center bg-transparent border-none"
+                                                   style="width: 40px; -moz-appearance: textfield;" />
+
+                                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => IncreaseQty(item))"
+                                                           Disabled="@(item.Product != null && item.Quantity >= item.Product.StockQuantity)" />
+                                        </div>
+
+                                        <!-- Delete Action -->
+                                        <MudTooltip Text="@L["Remove"]">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                           Color="Color.Error"
+                                                           Variant="Variant.Text"
+                                                           OnClick="@(() => Remove(item.ProductId))" />
+                                        </MudTooltip>
+                                    </div>
+                                </div>
+                            </div>
+                        </MudPaper>
+                    }
+                </MudStack>
+            }
+        </MudItem>
+
+        <!-- Summary Sidebar -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 rounded-xl sticky top-24" Elevation="4">
+                <MudText Typo="Typo.h5" Class="font-bold mb-6">@L["OrderSummary"]</MudText>
+
+                <MudText Typo="Typo.h5" Class="font-bold mb-6">@L["OrderSummary"]</MudText>
+
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["Subtotal"]</MudText>
+                    <MudText Typo="Typo.body1" Class="font-bold">@CartService.GetTotal().ToString("N0") @_currencySymbol</MudText>
+                </div>
+
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["Shipping"]</MudText>
+                    <MudText Typo="Typo.body1" Class="font-bold">@(CartService.GetTotal() > _freeShippingThreshold && _freeShippingThreshold > 0 ? L["Free"] : $"{_baseShippingFee.ToString("N0")} {_currencySymbol}")</MudText>
+                </div>
+
+                <MudDivider Class="my-4" />
+
+                <div class="d-flex justify-space-between mb-6">
+                    <MudText Typo="Typo.h6">@L["Total"]</MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-black">@((CartService.GetTotal() + (CartService.GetTotal() > _freeShippingThreshold && _freeShippingThreshold > 0 ? 0 : _baseShippingFee)).ToString("N0")) @_currencySymbol</MudText>
+                </div>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           Class="rounded-lg py-3 font-bold shadow-lg"
+                           Disabled="!_items.Any()"
+                           OnClick="Checkout">
+                    @L["Checkout"]
+                </MudButton>
+
+                <div class="mt-4 d-flex align-center justify-center gap-2 opacity-50">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+                    <MudText Typo="Typo.caption">Secure Checkout</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    /* Remove input spinners */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .hover-elevation:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--mud-elevation-4);
+    }
+
+    .sticky {
+        position: sticky;
+    }
+
+    .top-24 {
+        top: 6rem; /* Adjust based on navbar height */
+    }
+</style>
+
+@code {
+    private List<CartItem> _items = new();
+    private string _currencySymbol = "$";
+    private decimal _freeShippingThreshold = 50000;
+    private decimal _baseShippingFee = 500;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await SettingsService.GetSettingsAsync();
+        if (settings != null)
+        {
+            _currencySymbol = settings.CurrencySymbol;
+            _freeShippingThreshold = settings.FreeShippingThreshold;
+            // Provide a quick estimate base fee for the cart view
+            _baseShippingFee = settings.EnableHomeDelivery ? settings.BaseHomeDeliveryFee : settings.BasePickupDeliveryFee;
+        }
+
+        _items = CartService.GetItems();
+        CartService.OnChange += StateHasChanged;
+    }
+
+    private void IncreaseQty(CartItem item)
+    {
+        if (item.Product != null)
+        {
+            if (!CartService.AddToCart(item.Product))
+            {
+                Snackbar.Add(L["StockLimitReached"], Severity.Warning);
+            }
+        }
+    }
+
+    private void DecreaseQty(CartItem item)
+    {
+        CartService.DecreaseQuantity(item.ProductId);
+    }
+
+    private void UpdateQty(CartItem item, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out int newQty))
+        {
+            if (newQty < 1) newQty = 1; // Prevent 0 or negative via typing
+
+            if (!CartService.UpdateQuantity(item.ProductId, newQty))
+            {
+                Snackbar.Add(L["StockLimitReached"], Severity.Warning);
+                // Reset UI to max available if needed, or simply don't update logic
+                // Ideally, CartService.UpdateQuantity returns false if stock is exceeded
+                // Force UI refresh to revert input if invalid
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void Remove(Guid id) => CartService.RemoveFromCart(id);
+
+    private void Checkout()
+    {
+        Navigation.NavigateTo("/checkout");
+    }
+}

@@ -1,0 +1,65 @@
+﻿@using MudBlazor
+@inject NavigationManager Navigation
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<L> L
+
+<!--
+    Global Search Component
+    Design: "Pill" shape with light gray background, similar to the Profile Prototype.
+    Visibility: Hidden on small screens (mobile), visible on tablet/desktop.
+-->
+<div class="d-none d-md-flex align-center rounded-lg px-3 py-1 mx-6 transition-all"
+     style="background-color: var(--mud-palette-table-hover); width: 100%; max-width: 400px; height: 40px;">
+
+    <MudIcon Icon="@Icons.Material.Filled.Search"
+             Class="mr-2 mud-text-secondary"
+             Size="Size.Medium" />
+
+    <!--
+        Standard HTML input for lightness and transparency control.
+        Binds to _searchTerm and listens for 'Enter'.
+    -->
+    <input type="text"
+           @bind="_searchTerm"
+           @onkeyup="HandleKeyUp"
+           placeholder="@L["SearchPlaceholder"]"
+           class="mud-typography-body1"
+           style="background: transparent; border: none; outline: none; flex-grow: 1; color: var(--mud-palette-text-primary);" />
+</div>
+<!-- Mobile View: Just show the Search Icon button -->
+<MudIconButton Icon="@Icons.Material.Filled.Search"
+               Color="Color.Inherit"
+               Class="d-md-none" />
+
+<style>
+    /* Optional: Add a subtle focus effect */
+    .d-none.d-md-flex:focus-within {
+        box-shadow: 0 0 0 2px var(--mud-palette-primary);
+    }
+</style>
+@code {
+    private string _searchTerm = "";
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            NavigateToCatalog();
+        }
+    }
+
+    private void NavigateToCatalog()
+    {
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            Navigation.NavigateTo($"/catalog?search={Uri.EscapeDataString(_searchTerm)}");
+            _searchTerm = ""; // Clear input after search
+        }
+        else
+        {
+            Navigation.NavigateTo("/catalog");
+        }
+    }
+}
+

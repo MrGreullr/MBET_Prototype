@@ -1,0 +1,80 @@
+﻿@page "/login"
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+
+@inject ISettingsService SettingsService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<L> L
+
+<PageTitle>@L["Login"] | MBET</PageTitle>
+
+@if (_settings == null)
+{
+    <div class="d-flex justify-center align-center" style="height: 100vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else
+{
+    <div class="d-flex justify-center align-center relative overflow-hidden" style="min-height: 80vh;">
+        <!-- Ambient Background Blobs (Using MudBlazor Styling) -->
+        <div class="absolute rounded-circle" style="top: -50px; right: -50px; width: 500px; height: 500px; background-color: var(--mud-palette-secondary); filter: blur(120px); opacity: 0.15; z-index: 0;"></div>
+        <div class="absolute rounded-circle" style="bottom: -50px; left: -50px; width: 500px; height: 500px; background-color: var(--mud-palette-primary); filter: blur(120px); opacity: 0.15; z-index: 0;"></div>
+
+        <MudContainer MaxWidth="MaxWidth.Small" Class="relative z-10 py-16 my-8">
+            <MudPaper Elevation="0" Class="pa-8 pa-md-12 rounded-xl" Style="background-color: var(--mud-palette-surface); backdrop-filter: blur(20px); border: 1px solid var(--mud-palette-lines-default);">
+                <div class="d-flex justify-center mb-8">
+                    <MudImage Src="@_settings.LogoUrl" Height="@_settings.LogoHeight" Alt="@_settings.SiteName" ObjectFit="ObjectFit.Contain" />
+                </div>
+
+                <MudText Typo="Typo.h4" Align="Align.Center" Class="font-black mb-2">@L["WelcomeBack"]</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mud-text-secondary mb-8">@L["LoginSubtitle"]</MudText>
+
+                @if (!string.IsNullOrEmpty(Error))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@Error</MudAlert>
+                }
+                @if (!string.IsNullOrEmpty(Message))
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-4" Dense="true">@Message</MudAlert>
+                }
+
+                <form action="/account/login" method="post">
+                    <MudStack Spacing="4">
+                        <MudTextField T="string" Name="Email" Label="@L["EmailAddress"]" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" Required="true" Class="mb-2" />
+
+                        <MudTextField T="string" Name="Password" Label="@L["Password"]" Variant="Variant.Outlined" InputType="InputType.Password" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" Required="true" />
+
+                        <div class="d-flex justify-space-between align-center mt-2">
+                            <MudCheckBox T="bool" Label="@L["RememberMe"]" Color="Color.Primary" Dense="true" />
+                            <MudLink Href="/forgot-password" Color="Color.Secondary" Underline="Underline.None" Class="font-bold text-sm">@L["ForgotPasswordLink"]</MudLink>
+                        </div>
+
+                        <button type="submit" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-large mud-width-full py-3 rounded-lg font-bold shadow-lg mt-4">
+                            <span class="mud-button-label">@L["AccessAccount"]</span>
+                        </button>
+                    </MudStack>
+                </form>
+
+                <div class="mt-8 text-center">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @L["NotAMember"] <MudLink Href="/register" Color="Color.Primary" Class="font-bold">@L["RegisterNowLink"]</MudLink>
+                    </MudText>
+                </div>
+            </MudPaper>
+        </MudContainer>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    [SupplyParameterFromQuery] public string? Message { get; set; }
+    private GlobalSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+    }
+}

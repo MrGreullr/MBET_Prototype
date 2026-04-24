@@ -1,0 +1,60 @@
+﻿@using MudBlazor
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject ISettingsService SettingsService
+@inject IStringLocalizer<L> L
+
+@if (_settings != null && _settings.ShowFeaturesSection && _settings.Features.Any())
+{
+    <section class="py-16" style="background-color: var(--mud-palette-background-grey); border-top: 1px solid var(--mud-palette-lines-default); border-bottom: 1px solid var(--mud-palette-lines-default);">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-6">
+
+            <div class="text-center mb-16">
+                <MudText Typo="Typo.h2" Class="italic mb-4">
+                    @string.Format(L["WhyChooseUs"], _settings.SiteName ?? "MBET")
+                </MudText>
+                <MudText Typo="Typo.body1" Class="mud-text-secondary text-lg" Style="max-width: 600px; margin: 0 auto;">
+                    @L["FeaturesDescription"]
+                </MudText>
+            </div>
+
+            <MudGrid Spacing="8" Justify="Justify.Center">
+                @foreach (var feature in _settings.Features.OrderBy(f => f.Order))
+                {
+                    <MudItem xs="12" md="4">
+                        <MudPaper Class="pa-10 rounded-xl relative overflow-hidden h-100 transition-all" Elevation="2" Style="border: 1px solid var(--mud-palette-lines-default);">
+
+                            <!-- Dynamic Glow based on Order (Alternating colors) -->
+                            <div class="absolute rounded-circle"
+                                 style="top: -50px; right: -50px; width: 200px; height: 200px; filter: blur(80px); opacity: 0.15;
+                                         background-color: @(feature.Order % 2 == 0 ? "var(--mud-palette-secondary)" : "var(--mud-palette-primary)");">
+                            </div>
+
+                            <MudStack Spacing="6" Class="relative z-10">
+                                <MudPaper Class="d-flex align-center justify-center rounded-xl" Width="80px" Height="80px" Elevation="4"
+                                          Style="@($"background-color: {(feature.Order % 2 == 0 ? "var(--mud-palette-secondary)" : "var(--mud-palette-primary)")};")">
+                                    <MudIcon Icon="@feature.Icon" Size="Size.Large" Color="Color.Surface" />
+                                </MudPaper>
+
+                                <MudText Typo="Typo.h4" Class="font-bold italic">@L[feature.Title]</MudText>
+                                <MudText Typo="Typo.body1" Class="mud-text-secondary">@L[feature.Description]</MudText>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudContainer>
+    </section>
+}
+
+@code {
+    private GlobalSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+    }
+}

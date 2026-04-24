@@ -1,0 +1,96 @@
+﻿@page "/register"
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+
+@inject ISettingsService SettingsService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<L> L
+
+<PageTitle>@L["Join"] | MBET</PageTitle>
+
+@if (_settings == null)
+{
+    <div class="d-flex justify-center align-center" style="height: 100vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else
+{
+    <div class="d-flex justify-center align-center relative overflow-hidden" style="min-height: 80vh;">
+        <!-- Ambient Background Blobs (Using MudBlazor Styling) -->
+        <div class="absolute rounded-circle" style="top: -100px; left: -100px; width: 600px; height: 600px; background-color: var(--mud-palette-secondary); filter: blur(120px); opacity: 0.15; z-index: 0;"></div>
+        <div class="absolute rounded-circle" style="bottom: -100px; right: -100px; width: 600px; height: 600px; background-color: var(--mud-palette-primary); filter: blur(120px); opacity: 0.15; z-index: 0;"></div>
+
+        <MudContainer MaxWidth="MaxWidth.Small" Class="relative z-10 py-16 my-8">
+            <MudPaper Elevation="0" Class="pa-8 pa-md-12 rounded-xl" Style="background-color: var(--mud-palette-surface); backdrop-filter: blur(20px); border: 1px solid var(--mud-palette-lines-default);">
+
+                <div class="d-flex justify-center mb-8">
+                    <MudImage Src="@_settings.LogoUrl" Height="@_settings.LogoHeight" Alt="@_settings.SiteName" ObjectFit="ObjectFit.Contain" />
+                </div>
+
+                <div class="text-center mb-8">
+                    <MudText Typo="Typo.h4" Class="font-black mb-2">@L["JoinCollective"]</MudText>
+                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["RegisterSubtitle"]</MudText>
+
+                    @if (!string.IsNullOrEmpty(Error))
+                    {
+                        <!-- Cleanly render multiple errors as a list -->
+                        <MudAlert Severity="Severity.Error" Class="mt-4 text-start" Dense="true">
+                            <ul style="margin: 0; padding-left: 1.2rem;">
+                                @foreach (var err in Error.Split(" | "))
+                                {
+                                    <li>@err</li>
+                                }
+                            </ul>
+                        </MudAlert>
+                    }
+                </div>
+
+                <form action="/account/register" method="post">
+                    <MudStack Spacing="4">
+                        <div class="d-flex gap-4">
+                            <MudTextField T="string" Name="FirstName" Label="@L["FirstName"]" Variant="Variant.Outlined" Required="true" />
+                            <MudTextField T="string" Name="LastName" Label="@L["LastName"]" Variant="Variant.Outlined" Required="true" />
+                        </div>
+
+                        <MudTextField T="string" Name="Email" Label="@L["EmailAddress"]" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" Required="true" />
+
+                        <!-- Corrected Helper Text to match Dependency Injection configuration -->
+                        <MudTextField T="string" Name="Password" Label="@L["Password"]" Variant="Variant.Outlined" InputType="InputType.Password" HelperText="@L["PasswordRequirements"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" Required="true" />
+
+                        <MudTextField T="string" Name="ConfirmPassword" Label="@L["ConfirmPassword"]" Variant="Variant.Outlined" InputType="InputType.Password" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.LockReset" Required="true" />
+
+                        <div class="d-flex align-start gap-2 mt-2">
+                            <input type="checkbox" required id="terms" style="margin-top: 4px;" />
+                            <label for="terms" class="mud-typography mud-typography-caption mud-text-secondary">
+                                @L["TermsAgreement"] <span class="mud-text-primary font-weight-bold">@L["TermsOfService"]</span>.
+                            </label>
+                        </div>
+
+                        <button type="submit" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-large mud-width-full py-3 rounded-lg font-bold shadow-lg mt-2">
+                            <span class="mud-button-label">@L["CreateAccount"]</span>
+                        </button>
+                    </MudStack>
+                </form>
+
+                <div class="mt-8 text-center">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @L["AlreadyMember"] <MudLink Href="/login" Color="Color.Primary" Class="font-bold">@L["LoginLink"]</MudLink>
+                    </MudText>
+                </div>
+            </MudPaper>
+        </MudContainer>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    private GlobalSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+    }
+}

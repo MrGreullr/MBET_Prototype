@@ -1,0 +1,39 @@
+﻿@using MudBlazor
+@inject NavigationManager Navigation
+
+<MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Inherit" Direction="Direction.Bottom" OffsetY="true" Dense="true">
+    <MudMenuItem OnClick="@(() => ChangeLanguage("en-US"))">
+        <div class="d-flex align-center">
+            <MudIcon Icon="@UKFlag" Class="mr-2" Size="Size.Small" />
+            English (EN)
+        </div>
+    </MudMenuItem>
+    <MudMenuItem OnClick="@(() => ChangeLanguage("fr-FR"))">
+        <div class="d-flex align-center">
+            <MudIcon Icon="@FrenchFlag" Class="mr-2" Size="Size.Small" />
+            Français (FR)
+        </div>
+    </MudMenuItem>
+    <MudMenuItem OnClick="@(() => ChangeLanguage("ar-DZ"))">
+        <div class="d-flex align-center">
+            <MudIcon Icon="@AlgeriaFlag" Class="mr-2" Size="Size.Small" />
+            العربية (DZ)
+        </div>
+    </MudMenuItem>
+</MudMenu>
+
+@code {
+    private void ChangeLanguage(string culture)
+    {
+        var uri = new Uri(Navigation.Uri).GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+        var query = $"?culture={Uri.EscapeDataString(culture)}&redirectUri={Uri.EscapeDataString(uri)}";
+
+        // Force Load is essential for switching LTR <-> RTL
+        Navigation.NavigateTo("/Culture/Set" + query, forceLoad: true);
+    }
+
+    // SVG Flags
+    private const string UKFlag = "<svg viewBox=\"0 0 60 30\"><clipPath id=\"t\"><path d=\"M30,15h30v15zv15h-30zh-30v-15zv-15h30z\"/></clipPath><path d=\"M0,0v30h60v-30z\" fill=\"#00247d\"/><path d=\"M0,0l60,30m0-30l-60,30\" stroke=\"#fff\" stroke-width=\"6\"/><path d=\"M0,0l60,30m0-30l-60,30\" clip-path=\"url(#t)\" stroke=\"#cf142b\" stroke-width=\"4\"/><path d=\"M30,0v30m-30-15h60\" stroke=\"#fff\" stroke-width=\"10\"/><path d=\"M30,0v30m-30-15h60\" stroke=\"#cf142b\" stroke-width=\"6\"/></svg>";
+    private const string FrenchFlag = "<svg viewBox=\"0 0 900 600\"><rect width=\"900\" height=\"600\" fill=\"#ED2939\"/><rect width=\"600\" height=\"600\" fill=\"#fff\"/><rect width=\"300\" height=\"600\" fill=\"#002395\"/></svg>";
+    private const string AlgeriaFlag = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 900 600\"><rect width=\"900\" height=\"600\" fill=\"#fff\"/><rect width=\"450\" height=\"600\" fill=\"#006233\"/><path d=\"M480,300a120,120 0 1,1 -57.4,-105.3a90,90 0 1,0 0,210.6a90,90 0 0,0 57.4,-105.3z\" fill=\"#d21034\"/><path d=\"M533.6,335.6l-37.4,-11.6l-23.7,30.3l5.3,-38.8l-30.8,-23.4l37.8,-4.6l14.6,-35.8l15.9,35.2l38.2,3.3l-30.1,24.3z\" fill=\"#d21034\" transform=\"rotate(90 500 300)\"/></svg>";
+}

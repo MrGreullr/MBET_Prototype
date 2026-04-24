@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+
+    <!-- Plus Jakarta Sans - ND SHOP Display Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- MudBlazor CSS -->
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="MBET.Web.styles.css" rel="stylesheet" />
+
+    <style>
+        /* Global selection color to match brand orange */
+        ::selection {
+            background: rgba(255, 107, 0, 0.3);
+            color: white;
+        }
+
+        /* Enforcing the boutique italic headers system-wide */
+        .mud-typography-h1, .mud-typography-h2, .mud-typography-h3 {
+            font-style: italic !important;
+        }
+
+        /* Smooth scroll for the entire shop */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+    
+    <ImportMap />
+
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <!-- 
+        CRITICAL FIX: 
+        Wrapping Routes with CascadingAuthenticationState is MANDATORY for Blazor Auth.
+        This provides the [CascadingParameter] Task<AuthenticationState> to all child components.
+    -->
+    <CascadingAuthenticationState>
+        <Routes @rendermode="InteractiveServer" />
+    </CascadingAuthenticationState>
+
+    <ReconnectModal />
+
+    <!-- MudBlazor JS -->
+    <script src="_framework/blazor.web.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+</body>
+
+</html>

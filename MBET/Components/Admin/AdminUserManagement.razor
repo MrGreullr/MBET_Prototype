@@ -1,0 +1,197 @@
+﻿@page "/admin/users"
+@layout MBET.web.Components.Layout.AdminLayout
+
+@using Microsoft.AspNetCore.Identity
+@using MBET.Core.Entities.Identity
+@using MBET.web.Components.Admin.AdminTools
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator")]
+
+<PageTitle>@L["UserManagement"] | @L["AdminPanel"]</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-6">
+    <MudText Typo="Typo.h4" Class="font-bold">@L["UserManagement"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" Href="/admin/users/create">@L["CreateUser"]</MudButton>
+</div>
+
+<MudDataGrid Items="@_users" Loading="@_loading" Filterable="true" SortMode="SortMode.Multiple" Groupable="false" QuickFilter="@_quickFilter" Class="glass-panel rounded-xl" Elevation="0">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">@L["RegisteredAccounts"]</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="@L["SearchUserPlaceholder"]" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+    </ToolBarContent>
+
+    <Columns>
+        <PropertyColumn Property="x => x.User.Email" Title="@L["User"]" Sortable="true">
+            <CellTemplate>
+                <div class="d-flex align-center gap-3">
+                    <MudAvatar Color="Color.Primary" Size="Size.Small">@(string.IsNullOrEmpty(context.Item.User.Email) ? "?" : context.Item.User.Email.Substring(0, 1).ToUpper())</MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.body2" Class="font-bold">@context.Item.User.FirstName @context.Item.User.LastName</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Item.User.Email</MudText>
+                    </div>
+                </div>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <!-- New Roles Column -->
+        <PropertyColumn Property="x => x.Roles.Count" Title="@L["Roles"]" Sortable="false">
+            <CellTemplate>
+                <div class="d-flex flex-wrap gap-1">
+                    @if (context.Item.Roles.Any())
+                    {
+                        @foreach (var role in context.Item.Roles)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Tertiary" Variant="Variant.Outlined">@role</MudChip>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["NoRoles"]</MudText>
+                    }
+                </div>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.User.IsActive" Title="@L["Status"]">
+            <CellTemplate>
+                @if (context.Item.User.IsBanned)
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">@L["Status_Banned"]</MudChip>
+                }
+                else if (context.Item.User.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@L["Status_Active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@L["Status_Pending"]</MudChip>
+                }
+
+                @if (context.Item.User.IsVIP)
+                {
+                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">@L["Status_VIP"]</MudChip>
+                }
+            </CellTemplate>
+        </PropertyColumn>
+
+        <TemplateColumn Title="@L["Actions"]">
+            <CellTemplate>
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditUser(context.Item.User))">@L["EditDetails"]</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Shield" OnClick="@(() => OpenManageRolesDialog(context.Item.User))">@L["ManageRoles"]</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.LockReset" OnClick="@(() => ResetPassword(context.Item.User))">@L["ResetPassword"]</MudMenuItem>
+                    <MudDivider />
+                    @if (context.Item.User.IsBanned)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success" OnClick="@(() => UnbanUser(context.Item.User))">@L["UnbanUser"]</MudMenuItem>
+                    }
+                    else
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Block" IconColor="Color.Error" OnClick="@(() => BanUser(context.Item.User))">@L["BanUser"]</MudMenuItem>
+                    }
+                </MudMenu>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="UserWithRoles" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    // Record to hold user and their roles for the grid
+    private record UserWithRoles(ApplicationUser User, IList<string> Roles);
+
+    private List<UserWithRoles> _users = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        _loading = true;
+        var allUsers = UserManager.Users.ToList();
+        var userList = new List<UserWithRoles>();
+
+        foreach (var user in allUsers)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userList.Add(new UserWithRoles(user, roles));
+        }
+
+        _users = userList;
+        _loading = false;
+    }
+
+    private Func<UserWithRoles, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        if (x.User.Email?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (x.User.FirstName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (x.User.LastName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (x.Roles.Any(r => r.Contains(_searchString, StringComparison.OrdinalIgnoreCase))) return true;
+        return false;
+    };
+
+    private void EditUser(ApplicationUser user)
+    {
+        Snackbar.Add("Edit feature coming next.", Severity.Info);
+    }
+
+    private async Task OpenManageRolesDialog(ApplicationUser user)
+    {
+        var parameters = new DialogParameters<ManageUserRolesDialog>
+        {
+            { x => x.UserId, user.Id }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ManageUserRolesDialog>(L["ManageUserRoles"], parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadUsersAsync(); // Reload to reflect role changes
+        }
+    }
+
+    private async Task ResetPassword(ApplicationUser user)
+    {
+        var parameters = new DialogParameters { ["UserId"] = user.Id.ToString(), ["UserEmail"] = user.Email };
+        var dialog = DialogService.Show<AdminPasswordResetDialog>(L["ResetPassword"], parameters);
+        await dialog.Result;
+    }
+
+    private async Task BanUser(ApplicationUser user)
+    {
+        var parameters = new DialogParameters { ["UserId"] = user.Id.ToString(), ["UserEmail"] = user.Email };
+        var dialog = DialogService.Show<BanUserDialog>(L["BanUser"], parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadUsersAsync();
+        }
+    }
+
+    private async Task UnbanUser(ApplicationUser user)
+    {
+        user.IsBanned = false;
+        user.IsActive = true;
+        await UserManager.UpdateAsync(user);
+        Snackbar.Add(L["UserUnbannedSuccess", user.Email ?? ""], Severity.Success);
+        await LoadUsersAsync();
+    }
+}

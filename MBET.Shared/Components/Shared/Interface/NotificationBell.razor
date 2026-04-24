@@ -1,0 +1,35 @@
+﻿@using MudBlazor
+
+<MudTooltip Text="Unread Notifications">
+    <div class="relative mx-1">
+        <MudIconButton Icon="@Icons.Material.Outlined.Notifications"
+                       Color="Color.Inherit"
+                       Class="rounded-xl hover-pulse" />
+
+        <!-- Vibrant Alert Dot (KidZone style) -->
+        <div class="absolute" style="top: 8px; right: 8px; pointer-events: none;">
+            <div class="size-3 bg-red-500 rounded-circle border-2 border-white shadow-sm animate-pulse"></div>
+        </div>
+    </div>
+</MudTooltip>
+
+<style>
+    .hover-pulse:hover {
+        background-color: rgba(37, 209, 244, 0.1);
+        color: var(--mud-palette-primary);
+    }
+
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .5;
+        }
+    }
+</style>

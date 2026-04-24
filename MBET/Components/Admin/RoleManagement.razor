@@ -1,0 +1,96 @@
+﻿@page "/admin/roles"
+@layout MBET.web.Components.Layout.AdminLayout
+@using Microsoft.AspNetCore.Identity
+@using MBET.Core.Entities.Identity
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject RoleManager<ApplicationRole> RoleManager
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin")]
+
+<PageTitle>@L["Roles"] | @L["AdminPanel"]</PageTitle>
+
+<MudText Typo="Typo.h4" Class="font-bold mb-6">@L["RoleManagement"]</MudText>
+
+<MudGrid>
+    <!-- Create Role -->
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h6" Class="mb-4">@L["AddNewRole"]</MudText>
+            <MudTextField @bind-Value="_newRoleName" Label="@L["RoleName"]" Variant="Variant.Outlined" Class="mb-4" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateRole" Disabled="@string.IsNullOrWhiteSpace(_newRoleName)">@L["CreateRole"]</MudButton>
+        </MudPaper>
+    </MudItem>
+
+    <!-- List Roles -->
+    <MudItem xs="12" md="8">
+        <MudTable Items="@_roles" Hover="true" Elevation="0" Class="border">
+            <HeaderContent>
+                <MudTh>@L["RoleName"]</MudTh>
+                <MudTh>@L["Id"]</MudTh>
+                <MudTh>@L["Actions"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["RoleName"]">
+                    <MudText Class="font-bold">@context.Name</MudText>
+                </MudTd>
+                <MudTd DataLabel="@L["Id"]">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Id</MudText>
+                </MudTd>
+                <MudTd>
+                    @if (context.Name != "SuperAdmin" && context.Name != "Administrator")
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteRole(context))" Size="Size.Small" />
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<ApplicationRole> _roles = new();
+    private string _newRoleName = "";
+
+    protected override void OnInitialized()
+    {
+        LoadRoles();
+    }
+
+    private void LoadRoles()
+    {
+        _roles = RoleManager.Roles.ToList();
+    }
+
+    private async Task CreateRole()
+    {
+        if (string.IsNullOrWhiteSpace(_newRoleName)) return;
+
+        var result = await RoleManager.CreateAsync(new ApplicationRole(_newRoleName));
+        if (result.Succeeded)
+        {
+            Snackbar.Add(L["RoleCreatedSuccess", _newRoleName], Severity.Success);
+            _newRoleName = "";
+            LoadRoles();
+        }
+        else
+        {
+            Snackbar.Add(result.Errors.First().Description, Severity.Error);
+        }
+    }
+
+    private async Task DeleteRole(ApplicationRole role)
+    {
+        var result = await RoleManager.DeleteAsync(role);
+        if (result.Succeeded)
+        {
+            Snackbar.Add(L["RoleDeletedSuccess"], Severity.Success);
+            LoadRoles();
+        }
+        else
+        {
+            Snackbar.Add(L["ErrorDeletingRole"], Severity.Error);
+        }
+    }
+}

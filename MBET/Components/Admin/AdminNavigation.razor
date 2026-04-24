@@ -1,0 +1,20 @@
+﻿@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using MudBlazor
+@inject IStringLocalizer<L> L
+
+<div class="pa-4">
+    <MudNavMenu Color="Color.Primary" Margin="Margin.Dense">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary px-4 mt-4 font-bold">Core Dashboard</MudText>
+        <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard">@L["Overview"]</MudNavLink>
+        
+        <MudText Typo="Typo.overline" Class="mud-text-secondary px-4 mt-4 font-bold">Inventory Management</MudText>
+        <MudNavLink Href="/admin/products" Icon="@Icons.Material.Outlined.Inventory">@L["Products"]</MudNavLink>
+        <MudNavLink Href="/admin/categories" Icon="@Icons.Material.Outlined.FilterList">@L["Categories"]</MudNavLink>
+        <MudNavLink Href="/admin/orders" Icon="@Icons.Material.Outlined.LocalShipping">@L["Active Orders"]</MudNavLink>
+
+        <MudText Typo="Typo.overline" Class="mud-text-secondary px-4 mt-4 font-bold">Store Setup</MudText>
+        <MudNavLink Href="/admin/settings" Icon="@Icons.Material.Outlined.Tune">@L["Global Settings"]</MudNavLink>
+        <MudNavLink Href="/admin/users" Icon="@Icons.Material.Outlined.AdminPanelSettings">@L["User Access"]</MudNavLink>
+    </MudNavMenu>
+</div>

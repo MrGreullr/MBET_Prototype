@@ -1,0 +1,222 @@
+﻿@page "/catalog"
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Core.Models
+@using MBET.Shared.Components.Shared
+@using MBET.Shared.Components.Cards
+@using MBET.Shared.Components.Shared.Product
+@using MBET.Infrastructure.Services
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+
+@inject IProductRepository ProductRepo
+@inject CartService CartService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16">
+    <MudGrid>
+        <!-- Sidebar Filters: Now binding SearchTerm from URL -->
+        <MudItem xs="12" md="3" lg="2">
+            <ProductFilter Categories="_categories"
+                           OnFilterChanged="OnFilterChanged"
+                           SearchTerm="@_searchTerm" />
+        </MudItem>
+
+        <!-- Product Content -->
+        <MudItem xs="12" md="9" lg="10">
+
+            <!-- Toolbar -->
+            <MudPaper Elevation="0" Class="pa-4 mb-6 d-flex flex-wrap align-center justify-space-between gap-4 rounded-xl border border-white-10 bg-dark-transparent">
+                <div>
+                    <MudText Typo="Typo.h5" Class="italic font-bold">@L["Catalog"]</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @L["Showing"] @(_products.Count()) @L["Of"] @(_totalCount) @L["Results"]
+                    </MudText>
+                </div>
+
+                <div class="d-flex align-center gap-4">
+                    <MudText Typo="Typo.body2">@L["ItemsPerPage"]:</MudText>
+                    <MudSelect T="int" @bind-Value="_pageSize" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Style="width: 80px;" SelectedValuesChanged="OnPageSizeChanged">
+                        <MudSelectItem Value="12">12</MudSelectItem>
+                        <MudSelectItem Value="24">24</MudSelectItem>
+                        <MudSelectItem Value="48">48</MudSelectItem>
+                    </MudSelect>
+                </div>
+            </MudPaper>
+
+            @if (_loading)
+            {
+                <MudGrid Spacing="4">
+                    @for (int i = 0; i < 6; i++)
+                    {
+                        <MudItem xs="12" sm="6" md="4" lg="3">
+                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="300px" Class="rounded-xl" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="80%" Class="mt-2" />
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="40%" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else if (!_products.Any())
+            {
+                <div class="d-flex flex-column align-center justify-center pa-16 border border-dashed border-white-10 rounded-xl">
+                    <MudIcon Icon="@Icons.Material.TwoTone.SearchOff" Size="Size.Large" Class="mb-4 mud-text-secondary" style="width: 64px; height: 64px;" />
+                    <MudText Typo="Typo.h6" Class="mud-text-secondary">@L["NoProductsFound"]</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="ResetFilters">@L["ClearFilters"]</MudButton>
+                </div>
+            }
+            else
+            {
+                <MudGrid Spacing="4">
+                    @foreach (var p in _products)
+                    {
+                        <MudItem xs="12" sm="6" md="4" lg="3">
+                            <ProductCard Id="@p.Id"
+                                         Title="@p.Title"
+                                         Price="@p.Price"
+                                         OriginalPrice="@(p.OriginalPrice)"
+                                         Category="@p.Category?.Name"
+                                         ImageSource="@(p.Images.FirstOrDefault(x => x.IsPrimary)?.ImageUrl ?? "https://via.placeholder.com/400")"
+                                         IsPriority="@p.IsPriority"
+                                         Rating="@p.Rating"
+                                         StockQuantity="@p.StockQuantity"
+                                         IsManualOutOfStock="@p.IsOutOfStock"
+                                         OnAddToCart="@(() => AddToCart(p))" />
+                        </MudItem>
+                    }
+                </MudGrid>
+
+                <div class="d-flex justify-center mt-12">
+                    <MudPagination Count="@_totalPages"
+                                   Selected="@_pageNumber"
+                                   SelectedChanged="OnPageChanged"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Large"
+                                   Rectangular="true"
+                                   Class="font-bold" />
+                </div>
+            }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .bg-dark-transparent {
+        background-color: rgba(11, 14, 20, 0.6);
+        backdrop-filter: blur(10px);
+    }
+
+    .border-white-10 {
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? SearchQuery { get; set; }
+
+    private IEnumerable<Product> _products = new List<Product>();
+    private List<Category> _categories = new();
+    private bool _loading = true;
+
+    // Pagination State
+    private int _pageNumber = 1;
+    private int _pageSize = 12;
+    private int _totalCount = 0;
+    private int _totalPages = 1;
+
+    // Filter State
+    private string? _searchTerm;
+    private Guid? _categoryId;
+    private decimal? _minPrice;
+    private decimal? _maxPrice;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = (await ProductRepo.GetCategoriesAsync()).ToList();
+        if (!string.IsNullOrEmpty(SearchQuery)) _searchTerm = SearchQuery;
+        await LoadProducts();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SearchQuery != _searchTerm)
+        {
+            _searchTerm = SearchQuery;
+            await LoadProducts();
+        }
+    }
+
+    private async Task LoadProducts()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        var result = await ProductRepo.GetProductsAsync(
+            _searchTerm,
+            _categoryId,
+            _minPrice,
+            _maxPrice,
+            _pageNumber,
+            _pageSize);
+
+        // --- PUBLIC FILTERING LOGIC ---
+        // We filter out Hidden items.
+        // Note: For perfect pagination, this check should ideally be inside the Repository SQL query.
+        // Applying it here ensures security but might result in pages having fewer than _pageSize items.
+        _products = result.Items.Where(p => p.IsVisible).ToList();
+
+        _totalCount = result.TotalCount; // This might be slightly inaccurate if hidden items exist, but acceptable for now.
+        _totalPages = result.TotalPages;
+
+        _loading = false;
+    }
+
+    private async Task OnFilterChanged(ProductFilter.FilterModel filter)
+    {
+        _searchTerm = filter.Search;
+        _categoryId = filter.CategoryId;
+        _minPrice = filter.MinPrice;
+        _maxPrice = filter.MaxPrice;
+        _pageNumber = 1;
+        await LoadProducts();
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _pageNumber = page;
+        await LoadProducts();
+    }
+
+    private async Task OnPageSizeChanged()
+    {
+        _pageNumber = 1;
+        await LoadProducts();
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchTerm = null;
+        _categoryId = null;
+        _minPrice = null;
+        _maxPrice = null;
+        Navigation.NavigateTo("/catalog");
+        await LoadProducts();
+    }
+
+    private void AddToCart(Product product)
+    {
+        // Double check stock before adding
+        if (product.IsOutOfStock || product.StockQuantity <= 0)
+        {
+            Snackbar.Add(L["Status_OutOfStock"], Severity.Error);
+            return;
+        }
+
+        CartService.AddToCart(product);
+        Snackbar.Add($"{product.Title} {L["AddedToCart"]}", Severity.Success);
+    }
+}

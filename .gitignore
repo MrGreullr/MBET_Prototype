@@ -1,0 +1,36 @@
+## --- Visual Studio & .NET ---
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.doccache
+.vs/
+
+## --- Secrets & Configuration ---
+# DO NOT remove these from ignore; they often contain your real DB strings
+appsettings.Development.json
+appsettings.Local.json
+*.secrets.json
+.env
+
+## --- EF Core & Databases ---
+# Ignore local SQLite databases or SQL Server log files
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+
+## --- User Secrets (Windows) ---
+# If you use dotnet user-secrets, they stay on your machine anyway, 
+# but this is a backup safety measure.
+secrets.json
+
+## --- OS Related ---
+.DS_Store
+Thumbs.db
+
+## --- Publishers & Hosting ---
+# This ignores the folders created when you "Publish" to SmarterASP/MonsterASP
+[Pp]ublish/
+*.pubxml

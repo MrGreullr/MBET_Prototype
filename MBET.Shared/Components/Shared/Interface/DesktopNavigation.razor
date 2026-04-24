@@ -1,0 +1,46 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<L> L
+
+<MudStack Row="true" Class="d-none d-md-flex ml-8 gap-4" AlignItems="AlignItems.Center">
+
+    <MudButton Href="/"
+               Variant="Variant.Text"
+               Color="Color.Inherit"
+               Ripple="false"
+               Class="nav-btn px-2 font-bold bg-transparent">
+        @L["Home"]
+    </MudButton>
+
+    <MudButton Href="/catalog"
+               Variant="Variant.Text"
+               Color="Color.Inherit"
+               Ripple="false"
+               Class="nav-btn px-2 font-bold bg-transparent">
+        @L["Catalog"]
+    </MudButton>
+</MudStack>
+
+<style>
+    .nav-btn {
+        transition: color 0.3s ease;
+        opacity: 0.7;
+        letter-spacing: 0.03em;
+        background-color: transparent !important; /* Force no background */
+    }
+
+        /* ONLY change text color, NO background change */
+        .nav-btn:hover {
+            background-color: transparent !important;
+            color: var(--mud-palette-primary) !important;
+            opacity: 1;
+            text-shadow: 0 0 15px rgba(var(--mud-palette-primary-rgb), 0.4); /* Optional: distinct glow */
+        }
+
+            /* Remove the default MudBlazor hover background for these specific buttons */
+            .nav-btn:hover::before {
+                display: none !important;
+            }
+</style>

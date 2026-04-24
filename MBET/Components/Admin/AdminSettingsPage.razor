@@ -1,0 +1,365 @@
+﻿@page "/admin/settings"
+@layout MBET.web.Components.Layout.AdminLayout
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+@using MBET.Shared.Resources
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Localization
+
+@inject ISettingsService SettingsService
+@inject IStorageService StorageService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator")]
+
+<PageTitle>@L["GlobalSettings"] | @L["AdminPanel"]</PageTitle>
+
+<MudText Typo="Typo.h4" Class="font-bold mb-6">@L["GlobalSettings"]</MudText>
+
+@if (_settings == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6 rounded-b-xl bg-surface" Style="border: 1px solid var(--mud-palette-lines-default);">
+
+        <!-- 1. Branding -->
+        <MudTabPanel Text="@L["Branding"]" Icon="@Icons.Material.Filled.BrandingWatermark">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_settings.SiteName" Label="@L["SiteName"]" Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_settings.LogoHeight" Label="Logo Height (px)" Variant="Variant.Outlined" Min="30" Max="120" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_settings.SiteDescription" Label="@L["SiteDescription"]" Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+
+                <!-- Logo Upload Section -->
+                <MudItem xs="12">
+                    <MudPaper Class="pa-4 border-dashed border-2 border-gray-500 bg-transparent rounded-lg" Elevation="0">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4 font-bold uppercase text-primary">@L["LogoUrl"]</MudText>
+                        <div class="d-flex gap-4 align-start">
+                            <MudFileUpload T="IBrowserFile" Accept=".png, .jpg, .jpeg, .webp, .svg" FilesChanged="UploadLogoAsync">
+                                <ActivatorContent>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Disabled="_isUploadingLogo">
+                                        @(_isUploadingLogo? L["Uploading"] : L["Upload"])
+                                    </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+                            <MudTextField @bind-Value="_settings.LogoUrl" Placeholder="@L["AddExternalUrl"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(_settings.LogoUrl))
+                        {
+                            <div class="mt-4 p-4 rounded-lg d-inline-block" style="background-color: var(--mud-palette-background); border: 1px solid var(--mud-palette-lines-default);">
+                                <MudImage Src="@_settings.LogoUrl" ObjectFit="ObjectFit.Contain" Height="@_settings.LogoHeight" />
+                            </div>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 2. Hero Section Tab -->
+        <MudTabPanel Text="Hero Design" Icon="@Icons.Material.Filled.ViewCarousel">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_settings.HeroTitle" Label="Hero Main Title (or Translation Key)" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_settings.HeroHighlightText" Label="Hero Highlighted Word" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_settings.HeroDescription" Label="Hero Description Text" Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="_settings.EnableHeroOverlay" Color="Color.Primary" Label="Enable Glass Overlay" />
+                </MudItem>
+
+                <!-- Hero Image Upload Section -->
+                <MudItem xs="12">
+                    <MudPaper Class="pa-4 border-dashed border-2 border-gray-500 bg-transparent rounded-lg" Elevation="0">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4 font-bold uppercase text-primary">Hero Image URL</MudText>
+                        <div class="d-flex gap-4 align-start">
+                            <MudFileUpload T="IBrowserFile" Accept=".png, .jpg, .jpeg, .webp" FilesChanged="UploadHeroImageAsync">
+                                <ActivatorContent>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Disabled="_isUploadingHero">
+                                        @(_isUploadingHero? L["Uploading"] : L["Upload"])
+                                    </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+                            <MudTextField @bind-Value="_settings.HeroImageUrl" Placeholder="@L["AddExternalUrl"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(_settings.HeroImageUrl))
+                        {
+                            <div class="mt-4">
+                                <MudImage Src="@_settings.HeroImageUrl" ObjectFit="ObjectFit.Cover" Class="rounded-lg border border-white-10 w-100" Style="max-width: 400px; aspect-ratio: 16/9;" />
+                            </div>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+        <!-- 2.1 Features -->
+        <MudTabPanel Text="Features" Icon="@Icons.Material.Filled.FeaturedPlayList">
+            <MudStack Spacing="4">
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.h6">Landing Page Cards</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddFeature">Add Feature</MudButton>
+                </div>
+
+                <MudSwitch @bind-Value="_settings.ShowFeaturesSection" Color="Color.Success" Label="Show Features Section on Landing Page" />
+
+                <MudTable Items="@_settings.Features" Hover="true" Elevation="0" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Icon</MudTh>
+                        <MudTh>Title (Key)</MudTh>
+                        <MudTh>Description (Key)</MudTh>
+                        <MudTh>Order</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="feature">
+                        <MudTd>
+                            <MudIcon Icon="@feature.Icon" Color="Color.Primary" />
+                        </MudTd>
+                        <MudTd>
+                            <MudTextField @bind-Value="feature.Title" Variant="Variant.Text" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd>
+                            <MudTextField @bind-Value="feature.Description" Variant="Variant.Text" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd>
+                            <MudNumericField @bind-Value="feature.Order" Variant="Variant.Text" Margin="Margin.Dense" Min="0" Max="10" />
+                        </MudTd>
+                        <MudTd>
+                            <MudMenu Icon="@Icons.Material.Filled.Edit" Variant="Variant.Text" Color="Color.Info">
+                                <MudText Typo="Typo.subtitle2" Class="pa-2 ml-2">Select Icon</MudText>
+                                @foreach (var icon in _availableIcons)
+                                {
+                                    <MudMenuItem OnClick="@(() => feature.Icon = icon.Value)">
+                                        <div class="d-flex gap-2">
+                                            <MudIcon Icon="@icon.Value" Size="Size.Small" /> @icon.Key
+                                        </div>
+                                    </MudMenuItem>
+                                }
+                            </MudMenu>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => RemoveFeature(feature))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudStack>
+        </MudTabPanel>
+
+        <!-- 3. Store Front & Catalog -->
+        <MudTabPanel Text="Store Front" Icon="@Icons.Material.Filled.Storefront">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="4">
+                    <MudSelect @bind-Value="_settings.LandingDisplayMode" Label="Landing Page Product Sorting" Variant="Variant.Outlined">
+                        @foreach (ProductDisplayMode item in Enum.GetValues(typeof(ProductDisplayMode)))
+                        {
+                            <MudSelectItem Value="@item">@item.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_settings.LandingProductCount" Label="Products to Show" Variant="Variant.Outlined" Min="4" Max="16" Step="4" />
+                </MudItem>
+                <!-- Separate control for Fresh Drops -->
+                <MudItem xs="12" md="4" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="_settings.ShowFreshDropsSection" Color="Color.Tertiary" Label="Show Fresh Drops Section" />
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 4. Contact & Social Tab -->
+        <MudTabPanel Text="@L["ContactInfo"]" Icon="@Icons.Material.Filled.ContactPhone">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_settings.SupportEmail" Label="@L["SupportEmail"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_settings.SupportPhone" Label="@L["SupportPhone"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_settings.PhysicalAddress" Label="@L["PhysicalAddress"]" Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Social Media Links (Leave empty to hide)</MudText>
+                    <MudDivider Class="mb-4" />
+                </MudItem>
+
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_settings.FacebookUrl" Label="Facebook URL" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_settings.TwitterUrl" Label="Twitter / X URL" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_settings.InstagramUrl" Label="Instagram URL" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_settings.GitHubUrl" Label="GitHub URL" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <!-- 5. Business Logic Tab -->
+        <MudTabPanel Text="@L["BusinessLogic"]" Icon="@Icons.Material.Filled.BusinessCenter">
+            <MudGrid Spacing="4">
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_settings.DefaultTaxRate" Label="@L["TaxRate"]" Variant="Variant.Outlined" Min="0" Max="1" Step="0.01M" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_settings.CurrencySymbol" Label="@L["Currency"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_settings.FreeShippingThreshold" Label="@L["FreeShippingThreshold"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_settings.AllowNewRegistrations" Color="Color.Success" Label="@L["AllowRegistrations"]" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_settings.IsMaintenanceMode" Color="Color.Error" Label="@L["MaintenanceMode"]" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_settings.IsMaintenanceMode" Color="Color.Error" Label="@L["MaintenanceMode"]" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2 font-bold text-primary">@L["ShippingAndDelivery"]</MudText>
+                    <MudDivider Class="mb-4" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_settings.EnableHomeDelivery" Color="Color.Primary" Label="@L["EnableHomeDelivery"]" />
+                    <MudNumericField @bind-Value="_settings.BaseHomeDeliveryFee" Label="@L["BaseHomeDeliveryFee"]" Variant="Variant.Outlined" Class="mt-2" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_settings.EnablePickupDelivery" Color="Color.Primary" Label="@L["EnablePickupDelivery"]" />
+                    <MudNumericField @bind-Value="_settings.BasePickupDeliveryFee" Label="@L["BasePickupDeliveryFee"]" Variant="Variant.Outlined" Class="mt-2" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_settings.WeightMultiplierFee" Label="@L["WeightMultiplierFee"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_settings.DistanceMultiplierFee" Label="@L["DistanceMultiplierFee"]" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+    </MudTabs>
+
+    <div class="mt-6 d-flex justify-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="SaveSettings" StartIcon="@Icons.Material.Filled.Save">@L["SaveChanges"]</MudButton>
+    </div>
+}
+
+@code {
+    private GlobalSettings? _settings;
+    private bool _isUploadingLogo;
+    private bool _isUploadingHero;
+
+    private Dictionary<string, string> _availableIcons = new()
+    {
+        { "Bolt (Fast)", Icons.Material.Filled.Bolt },
+        { "Shield (Secure)", Icons.Material.Filled.VerifiedUser },
+        { "Tech (Code)", Icons.Material.Filled.Terminal },
+        { "Star (Premium)", Icons.Material.Filled.Star },
+        { "Rocket (Launch)", Icons.Material.Filled.RocketLaunch },
+        { "Support (Help)", Icons.Material.Filled.SupportAgent },
+        { "Globe (World)", Icons.Material.Filled.Public }
+    };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+        // Ensure the list isn't null if DB had it null
+        if (_settings.Features == null) _settings.Features = new();
+    }
+
+    private void AddFeature()
+    {
+        _settings?.Features.Add(new SiteFeature
+        {
+            Title = "New Feature",
+            Description = "Description here",
+            Icon = Icons.Material.Filled.Star,
+            Order = _settings.Features.Count + 1
+        });
+    }
+
+    private void RemoveFeature(SiteFeature feature)
+    {
+        _settings?.Features.Remove(feature);
+    }
+
+    private async Task UploadLogoAsync(IBrowserFile file)
+    {
+        if (file == null || _settings == null) return;
+
+        _isUploadingLogo = true;
+        StateHasChanged();
+
+        try
+        {
+            // Max file size: 5MB for Logos
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            // FIX: Pass "branding" folder name
+            var url = await StorageService.UploadFileAsync(stream, file.Name, file.ContentType, "branding");
+
+            _settings.LogoUrl = url;
+            Snackbar.Add("Logo uploaded successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploadingLogo = false;
+        }
+    }
+
+    private async Task UploadHeroImageAsync(IBrowserFile file)
+    {
+        if (file == null || _settings == null) return;
+
+        _isUploadingHero = true;
+        StateHasChanged();
+
+        try
+        {
+            // Max file size: 10MB for Hero Images (High Res)
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            // FIX: Pass "hero" folder name
+            var url = await StorageService.UploadFileAsync(stream, file.Name, file.ContentType, "hero");
+
+            _settings.HeroImageUrl = url;
+            Snackbar.Add("Hero image uploaded successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploadingHero = false;
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        if (_settings != null)
+        {
+            await SettingsService.UpdateSettingsAsync(_settings);
+            Snackbar.Add(L["SettingsUpdated"], Severity.Success);
+        }
+    }
+}

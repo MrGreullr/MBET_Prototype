@@ -1,0 +1,159 @@
+﻿@page "/admin/audits"
+@layout MBET.web.Components.Layout.AdminLayout
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+
+@inject IRepository<AuditLog> AuditRepo
+@inject IStringLocalizer<L> L
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator")]
+
+<PageTitle>@L["AuditLogs"] | @L["AdminPanel"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16">
+    <div class="mb-8">
+        <MudText Typo="Typo.h3" Class="italic font-black">@L["AuditLogs"]</MudText>
+        <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["AuditLogsDesc"]</MudText>
+    </div>
+
+    <MudDataGrid T="AuditLog" Items="@_logs" Loading="@_loading" Hover="true" Class="glass-panel rounded-xl" Elevation="0"
+                 Filterable="true" SortMode="SortMode.Multiple" QuickFilter="@_quickFilter">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">@L["SystemActivity"]</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="@L["SearchAuditsPlaceholder"]" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" Class="mt-0" />
+        </ToolBarContent>
+
+        <Columns>
+            <!-- Enables the Expandable Child Row -->
+            <HierarchyColumn T="AuditLog" />
+
+            <PropertyColumn Property="x => x.Timestamp" Title="@L["Timestamp"]" Sortable="true" InitialDirection="SortDirection.Descending">
+                <CellTemplate>
+                    <MudText Typo="Typo.body2" Class="font-bold">@context.Item.Timestamp.ToLocalTime().ToString("MMM dd, yyyy")</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Item.Timestamp.ToLocalTime().ToString("HH:mm:ss")</MudText>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.UserName" Title="@L["User"]">
+                <CellTemplate>
+                    <div class="d-flex align-center gap-2">
+                        <MudAvatar Size="Size.Small" Color="Color.Primary">
+                            @(string.IsNullOrEmpty(context.Item.UserName) ? "S" : context.Item.UserName[0].ToString().ToUpper())
+                        </MudAvatar>
+                        <MudText Typo="Typo.body2" Class="font-bold">@(string.IsNullOrEmpty(context.Item.UserName) ? "System" : context.Item.UserName)</MudText>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.Type" Title="@L["ActionType"]">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Item.Type)" Variant="Variant.Filled" Class="uppercase font-bold tracking-wider" Style="font-size: 0.7rem;">
+                        @context.Item.Type
+                    </MudChip>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.TableName" Title="@L["TableName"]" />
+
+            <PropertyColumn Property="x => x.PrimaryKey" Title="@L["RecordId"]">
+                <CellTemplate>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="word-break: break-all;">@context.Item.PrimaryKey</MudText>
+                </CellTemplate>
+            </PropertyColumn>
+        </Columns>
+
+        <!-- Expanded Details View -->
+        <ChildRowContent>
+            <MudCard Elevation="0" Class="ma-4 pa-6 rounded-xl" Style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05);">
+                <div class="d-flex align-center gap-2 mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Difference" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Class="font-bold">@L["ChangeDetails"]</MudText>
+                </div>
+
+                <MudGrid Spacing="4">
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary uppercase font-bold tracking-widest mb-2 d-block">@L["OldValues"]</MudText>
+                        <MudPaper Class="pa-4 rounded-lg custom-scrollbar overflow-x-auto" Elevation="0" Style="background: #0b0e14; border: 1px solid rgba(255,100,100,0.1); max-height: 250px;">
+                            <pre style="color: #ff8a8a; font-size: 0.8rem; margin: 0; font-family: monospace;">@(string.IsNullOrEmpty(context.Item.OldValues) ? L["None"] : FormatJson(context.Item.OldValues))</pre>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary uppercase font-bold tracking-widest mb-2 d-block">@L["NewValues"]</MudText>
+                        <MudPaper Class="pa-4 rounded-lg custom-scrollbar overflow-x-auto" Elevation="0" Style="background: #0b0e14; border: 1px solid rgba(100,255,100,0.1); max-height: 250px;">
+                            <pre style="color: #4ec9b0; font-size: 0.8rem; margin: 0; font-family: monospace;">@(string.IsNullOrEmpty(context.Item.NewValues) ? L["None"] : FormatJson(context.Item.NewValues))</pre>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudCard>
+        </ChildRowContent>
+
+        <PagerContent>
+            <MudDataGridPager T="AuditLog" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+</style>
+
+@code {
+    private List<AuditLog> _logs = new();
+    private bool _loading = true;
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        // Fetching through the generic repository pattern
+        var allLogs = await AuditRepo.GetAllAsync();
+        _logs = allLogs.OrderByDescending(x => x.Timestamp).ToList();
+        _loading = false;
+    }
+
+    private Func<AuditLog, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        if (x.UserName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (x.TableName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (x.Type?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (x.PrimaryKey?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    };
+
+    private Color GetTypeColor(string? type) => type?.ToLower() switch
+    {
+        "create" => Color.Success,
+        "update" => Color.Info,
+        "delete" => Color.Error,
+        _ => Color.Default
+    };
+
+    // Helper to format raw JSON into readable indented code blocks
+    private string FormatJson(string? json)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(json)) return string.Empty;
+            using var jDoc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(jDoc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return json ?? string.Empty;
+        }
+    }
+}

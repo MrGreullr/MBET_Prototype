@@ -1,0 +1,35 @@
+﻿@using MudBlazor
+@inject IJSRuntime JSRuntime
+
+<MudButton Variant="Variant.Outlined"
+           Color="Color.Inherit"
+           StartIcon="@Icons.Material.Filled.ArrowBack"
+           Size="Size.Large"
+           Class="rounded-xl px-6 py-2 border-white-opacity hover-scale"
+           OnClick="GoBack">
+    @Text
+</MudButton>
+
+<style>
+    .border-white-opacity {
+        border-color: rgba(255,255,255,0.2) !important;
+    }
+
+    .hover-scale {
+        transition: transform 0.2s;
+    }
+
+        .hover-scale:hover {
+            transform: scale(1.05);
+            background-color: rgba(255,255,255,0.05);
+        }
+</style>
+
+@code {
+    [Parameter] public string Text { get; set; } = "Back";
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}

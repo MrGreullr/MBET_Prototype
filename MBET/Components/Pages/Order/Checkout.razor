@@ -1,0 +1,370 @@
+﻿@page "/checkout"
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Infrastructure.Services
+@using MBET.Core.Entities.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+@using MBET.Infrastructure.Entities
+@using MBET.web.Components.Dialogs
+@inject ISettingsService SettingsService
+
+@inject CartService CartService
+@inject IOrderService OrderService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IStringLocalizer<L> L
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-12 mb-16">
+    <MudText Typo="Typo.h3" Class="italic font-black mb-8">@L["Checkout"]</MudText>
+
+    @if (_isProcessing)
+    {
+        <div class="d-flex flex-column align-center justify-center py-24 glass-panel rounded-xl">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" StrokeWidth="4" />
+            <MudText Typo="Typo.h6" Class="mt-6 font-bold">@L["ProcessingOrder"]</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@L["DoNotCloseWindow"]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudGrid Spacing="4">
+            <!-- LEFT COLUMN: Info & Payment -->
+            <MudItem xs="12" md="7" lg="8">
+                <MudStack Spacing="4">
+
+                    <!-- Shipping Address Section -->
+                    <MudPaper Class="pa-6 rounded-xl glass-panel relative overflow-hidden" Elevation="0">
+                        <div class="d-flex justify-space-between align-center mb-4">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Primary" />
+                                <MudText Typo="Typo.h6" Class="font-bold">@L["ShippingInfo"]</MudText>
+                            </div>
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick='() => Navigation.NavigateTo("/profile")'>
+                                @L["Edit"]
+                            </MudButton>
+                        </div>
+
+                        @if (_user != null)
+                        {
+                            <div class="d-flex flex-column gap-1 ml-8">
+                                <MudText Typo="Typo.subtitle1" Class="font-bold">@_user.FirstName @_user.LastName</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@_user.PhoneNumber</MudText>
+                                <MudDivider Class="my-3" />
+                                <MudText Typo="Typo.body1">@_user.ShippingStreet</MudText>
+                                <MudText Typo="Typo.body1">@_user.ShippingCity, @_user.ShippingState @_user.ShippingZipCode</MudText>
+                                <MudText Typo="Typo.body1" Class="font-bold mt-1">@_user.ShippingCountry</MudText>
+                            </div>
+                        }
+                    </MudPaper>
+
+                    <!-- Delivery Method Section -->
+                    <MudPaper Class="pa-6 rounded-xl glass-panel" Elevation="0">
+                        <div class="d-flex align-center gap-2 mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" />
+                            <MudText Typo="Typo.h6" Class="font-bold">@L["DeliveryMethod"]</MudText>
+                        </div>
+
+                        <!-- UPDATED: Using @bind-Value for two-way binding with the custom property -->
+                        <MudRadioGroup @bind-Value="DeliveryMethod">
+                            <MudStack Spacing="3">
+                                @if (_settings?.EnableHomeDelivery == true)
+                                {
+                                    <MudPaper Class="pa-4 rounded-lg border-solid border-1 mud-border-primary" Elevation="0" Style="background: rgba(var(--mud-palette-primary-rgb), 0.05);">
+                                        <MudRadio Value="@("Home")" Color="Color.Primary" Size="Size.Small">
+                                            <div class="d-flex flex-column ml-2">
+                                                <MudText Class="font-bold">@L["HomeDelivery"]</MudText>
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["DeliverToDoor"]</MudText>
+                                            </div>
+                                        </MudRadio>
+                                    </MudPaper>
+                                }
+                                @if (_settings?.EnablePickupDelivery == true)
+                                {
+                                    <MudPaper Class="pa-4 rounded-lg border-solid border-1 mud-border-primary" Elevation="0" Style="background: rgba(var(--mud-palette-primary-rgb), 0.05);">
+                                        <MudRadio Value="@("Pickup")" Color="Color.Primary" Size="Size.Small">
+                                            <div class="d-flex flex-column ml-2">
+                                                <MudText Class="font-bold">@L["PickupDelivery"]</MudText>
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["DeliverToNearestBureau"]</MudText>
+                                            </div>
+                                        </MudRadio>
+                                    </MudPaper>
+                                }
+                            </MudStack>
+                        </MudRadioGroup>
+                    </MudPaper>
+
+                    <!-- Payment Method Section -->
+                    <MudPaper Class="pa-6 rounded-xl glass-panel" Elevation="0">
+                        <div class="d-flex align-center gap-2 mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Payment" Color="Color.Primary" />
+                            <MudText Typo="Typo.h6" Class="font-bold">@L["PaymentMethod"]</MudText>
+                        </div>
+
+                        <MudRadioGroup @bind-Value="_paymentMethod">
+                            <MudPaper Class="pa-4 rounded-lg border-solid border-1 mud-border-primary" Elevation="0" Style="background: rgba(var(--mud-palette-primary-rgb), 0.05);">
+                                <MudRadio Value="@("COD")" Color="Color.Primary" Size="Size.Small">
+                                    <div class="d-flex flex-column ml-2">
+                                        <MudText Class="font-bold">@L["CashOnDelivery"]</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["PayUponReceipt"]</MudText>
+                                    </div>
+                                </MudRadio>
+                            </MudPaper>
+                        </MudRadioGroup>
+                    </MudPaper>
+
+                </MudStack>
+            </MudItem>
+
+            <!-- RIGHT COLUMN: Order Summary -->
+            <MudItem xs="12" md="5" lg="4">
+                <MudPaper Class="pa-6 rounded-xl glass-panel sticky top-24" Elevation="4">
+                    <MudText Typo="Typo.h5" Class="font-bold mb-6">@L["OrderSummary"]</MudText>
+
+                    <!-- Scrollable Items List -->
+                    <div style="max-height: 300px; overflow-y: auto;" class="mb-6 pr-2 custom-scrollbar">
+                        <MudStack Spacing="3">
+                            @foreach (var item in _cartItems)
+                            {
+                                <div class="d-flex gap-3 align-center">
+                                    <MudBadge Content="@item.Quantity" Color="Color.Primary" Overlap="true" Bordered="true">
+                                        <MudImage Src="@(item.Product?.Images.FirstOrDefault()?.ImageUrl ?? "placeholder.png")"
+                                                  Width="48" Height="48" ObjectFit="ObjectFit.Cover" Class="rounded-lg" />
+                                    </MudBadge>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <MudText Typo="Typo.body2" Class="truncate font-bold">@item.Product?.Title</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.Product?.Category?.Name</MudText>
+                                    </div>
+                                    <MudText Typo="Typo.body2" Class="font-bold">@((item.UnitPrice * item.Quantity).ToString("N0")) @_currencySymbol</MudText>
+                                </div>
+                                <MudDivider />
+                            }
+                        </MudStack>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["Subtotal"]</MudText>
+                        <MudText Typo="Typo.body1" Class="font-bold">@_subtotal.ToString("N0") @_currencySymbol</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between mb-4">
+                        <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["ShippingFee"]</MudText>
+                        <MudText Typo="Typo.body1" Class="font-bold">@(_shippingFee == 0 ? L["Free"] : $"{_shippingFee.ToString("N0")} {_currencySymbol}")</MudText>
+                    </div>
+
+                    <MudDivider Class="my-4" />
+
+                    <div class="d-flex justify-space-between align-center mb-6">
+                        <MudText Typo="Typo.h6">@L["Total"]</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-black">@((_subtotal + _shippingFee).ToString("N0")) @_currencySymbol</MudText>
+                    </div>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Class="py-4 font-bold rounded-lg shadow-lg"
+                               OnClick="PlaceOrder"
+                               Disabled="_isProcessing"
+                               StartIcon="@(_isProcessing ? null : Icons.Material.Filled.Lock)">
+                        @(_isProcessing? L["Processing"] : L["ConfirmOrder"])
+                    </MudButton>
+
+                    <MudText Typo="Typo.caption" Align="Align.Center" Class="d-block mt-4 mud-text-secondary">
+                        @L["SecureCheckoutNote"]
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sticky {
+        position: sticky;
+    }
+
+    .top-24 {
+        top: 6rem;
+    }
+
+    /* Custom Scrollbar for the items list */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+</style>
+
+@code {
+    private ApplicationUser? _user;
+    private List<CartItem> _cartItems = new();
+    private decimal _subtotal;
+    private decimal _shippingFee;
+    private bool _isProcessing = false;
+
+    private GlobalSettings? _settings;
+    private string _currencySymbol = "$";
+
+    private string _paymentMethod = "COD";
+
+    // UPDATED: Using a property with a custom setter to instantly trigger calculations
+    private string _deliveryMethod = "Home";
+    public string DeliveryMethod
+    {
+        get => _deliveryMethod;
+        set
+        {
+            if (_deliveryMethod != value)
+            {
+                _deliveryMethod = value;
+                CalculateTotals();
+            }
+        }
+    }
+
+    // Placeholders for dynamic calculation based on future features
+    private decimal _mockTotalWeightKg = 2.5m; // Replace later with actual cart weight calculations
+    private decimal _mockDistanceKm = 15m;     // Replace later with mapping API calculation
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userPrincipal = authState.User;
+
+        if (userPrincipal.Identity?.IsAuthenticated != true)
+        {
+            Navigation.NavigateTo("/login?returnUrl=/checkout");
+            return;
+        }
+
+        _user = await UserManager.GetUserAsync(userPrincipal);
+        _cartItems = CartService.GetItems();
+        if (!_cartItems.Any())
+        {
+            Navigation.NavigateTo("/cart");
+            return;
+        }
+
+        _settings = await SettingsService.GetSettingsAsync();
+        if (_settings != null)
+        {
+            _currencySymbol = _settings.CurrencySymbol;
+            if (!_settings.EnableHomeDelivery && _settings.EnablePickupDelivery)
+            {
+                _deliveryMethod = "Pickup";
+            }
+        }
+
+        CalculateTotals();
+    }
+
+    private void CalculateTotals()
+    {
+        _subtotal = CartService.GetTotal();
+
+        if (_settings != null && _subtotal > _settings.FreeShippingThreshold && _settings.FreeShippingThreshold > 0)
+        {
+            _shippingFee = 0;
+        }
+        else if (_settings != null)
+        {
+            // Calculate base fee depending on selected method
+            decimal baseFee = _deliveryMethod == "Home" ? _settings.BaseHomeDeliveryFee : _settings.BasePickupDeliveryFee;
+
+            // Apply modifiers for weight and distance
+            decimal weightFee = _mockTotalWeightKg * _settings.WeightMultiplierFee;
+            decimal distanceFee = _mockDistanceKm * _settings.DistanceMultiplierFee;
+
+            _shippingFee = baseFee + weightFee + distanceFee;
+        }
+        else
+        {
+            _shippingFee = 500; // Safe fallback
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task PlaceOrder()
+    {
+        if (_user == null) return;
+
+        _isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var orderId = await OrderService.PlaceOrderAsync(_user.Id, _cartItems, _deliveryMethod, _shippingFee);
+
+            CartService.Clear();
+            _cartItems.Clear();
+
+            var parameters = new DialogParameters<OrderSuccessDialog>
+            {
+                { x => x.OrderNumber, "NEW" }
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = false,
+                CloseOnEscapeKey = false,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            };
+
+            await DialogService.ShowAsync<OrderSuccessDialog>(L["OrderConfirmed"], parameters, options);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "MissingShippingAddress")
+        {
+            Snackbar.Add(L["AddressRequired"], Severity.Warning, config =>
+            {
+                config.Action = L["UpdateAddress"];
+                config.ActionColor = Color.Primary;
+                config.OnClick = snackbar =>
+                {
+                    Navigation.NavigateTo("/profile");
+                    return Task.CompletedTask;
+                };
+            });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Snackbar.Add(L["AccountRestricted"], Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["ErrorSaving"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+}

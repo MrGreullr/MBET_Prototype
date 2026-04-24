@@ -1,0 +1,287 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using MBET.Core.Entities.Identity
+
+@inject IReviewService ReviewService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@inject UserManager<ApplicationUser> UserManager
+
+<MudPaper Elevation="0" Class="pa-6 mt-4 glass-panel rounded-xl">
+    <div class="d-flex align-center gap-4 mb-6">
+        <MudText Typo="Typo.h5" Class="font-bold">@L["Reviews"] (@(_reviews.Count))</MudText>
+        @if (_reviews.Any())
+        {
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                <MudText Typo="Typo.body2" Class="font-bold">@Math.Round(_reviews.Average(r => r.Rating), 1)</MudText>
+            </div>
+        }
+    </div>
+
+    <!-- Review Input Section -->
+    <AuthorizeView>
+        <Authorized>
+            <MudCard Elevation="0" Class="mb-8 pa-4 rounded-lg border border-white-10" Style="background: rgba(255,255,255,0.02);">
+                <MudText Typo="Typo.h6" Class="mb-2">@(_existingReview != null ? L["EditYourReview"] : L["WriteReview"])</MudText>
+
+                <div class="d-flex flex-column gap-4">
+                    <!-- Rating Input -->
+                    <div class="d-flex align-center gap-2">
+                        <MudText Typo="Typo.body2">@L["YourRating"]:</MudText>
+                        <MudRating @bind-SelectedValue="_userRating" HoveredValueChanged="HandleHoveredValueChanged" Size="Size.Medium" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@GetRatingLabel(_userRating)</MudText>
+                    </div>
+
+                    <!-- Comment Input -->
+                    <MudTextField @bind-Value="_userComment"
+                                  Label="@L["YourComment"]"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  Disabled="_isSubmitting"
+                                  Placeholder="@L["ReviewPlaceholder"]" />
+
+                    <div class="d-flex justify-end">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@(_existingReview != null ? Icons.Material.Filled.Edit : Icons.Material.Filled.Send)"
+                                   OnClick="SubmitReviewAsync"
+                                   Disabled="@(_userRating == 0 || _isSubmitting)">
+                            @if (_isSubmitting)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">@L["Processing"]</MudText>
+                            }
+                            else
+                            {
+                                @(_existingReview != null ? L["UpdateReview"] : L["PostReview"])
+                            }
+                        </MudButton>
+                    </div>
+                </div>
+            </MudCard>
+        </Authorized>
+        <NotAuthorized>
+            <MudAlert Severity="Severity.Info" Class="mb-6 rounded-lg" Icon="@Icons.Material.Filled.Lock">
+                @L["LoginToReview"]
+                <MudLink Href="login" Typo="Typo.body2" Color="Color.Inherit" Class="font-bold ml-1">@L["Login"]</MudLink>
+            </MudAlert>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <!-- Reviews List -->
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-center py-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (!_reviews.Any())
+    {
+        <div class="d-flex flex-column align-center justify-center py-8 opacity-50">
+            <MudIcon Icon="@Icons.Material.Outlined.RateReview" Size="Size.Large" Class="mb-2" />
+            <MudText>@L["NoReviewsYet"]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            @foreach (var review in _reviews)
+            {
+                <MudPaper Elevation="0" Class="pa-4 rounded-lg" Style="background: rgba(255,255,255,0.03);">
+                    <div class="d-flex justify-space-between align-start">
+                        <div class="d-flex align-center gap-3">
+                            <MudAvatar Color="Color.Secondary" Size="Size.Medium" Class="font-bold">
+                                @(string.IsNullOrEmpty(review.UserName) ? "?" : review.UserName[0].ToString().ToUpper())
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.subtitle2" Class="font-bold">@review.UserName</MudText>
+                                <div class="d-flex align-center gap-2">
+                                    <MudRating SelectedValue="@review.Rating" ReadOnly="true" Size="Size.Small" />
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@review.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                                    @if (review.LastModifiedAt.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary italic">(@L["Edited"])</MudText>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Action (Admin or Owner) -->
+                        <AuthorizeView>
+                            @if (CanDelete(context.User, review))
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteReviewAsync(review))"
+                                               Title="@L["Delete"]" />
+                            }
+                        </AuthorizeView>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(review.Comment))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-3 ml-12" Style="white-space: pre-wrap;">
+                            @review.Comment
+                        </MudText>
+                    }
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public Guid ProductId { get; set; }
+
+    private List<ProductReview> _reviews = new();
+    private ProductReview? _existingReview;
+
+    private int _userRating = 0;
+    private string _userComment = "";
+    private bool _isLoading = true;
+    private bool _isSubmitting = false;
+    private Guid _currentUserId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProductId != Guid.Empty)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        try
+        {
+            // 1. Get Reviews
+            _reviews = await ReviewService.GetReviewsByProductAsync(ProductId);
+
+            // 2. Check User State
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value;
+                if (Guid.TryParse(userIdClaim, out _currentUserId))
+                {
+                    // Check if user already reviewed
+                    _existingReview = _reviews.FirstOrDefault(r => r.UserId == _currentUserId);
+                    if (_existingReview != null)
+                    {
+                        _userRating = _existingReview.Rating;
+                        _userComment = _existingReview.Comment ?? "";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading reviews: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SubmitReviewAsync()
+    {
+        if (_userRating < 1)
+        {
+            Snackbar.Add(L["RatingRequired"], Severity.Warning);
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var principal = authState.User;
+
+            // Privacy Change: Use FirstName + LastName instead of Email/Identity.Name
+            string userName = "Anonymous";
+            var user = await UserManager.GetUserAsync(principal);
+            if (user != null)
+            {
+                userName = $"{user.FirstName} {user.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(userName))
+                {
+                    // Fallback to masking email if name is missing (e.g. j***@email.com)
+                    // Or just use the part before @ if available
+                    var email = user.Email ?? "User";
+                    var atIndex = email.IndexOf('@');
+                    userName = atIndex > 0 ? email.Substring(0, atIndex) : email;
+                }
+            }
+
+            var result = await ReviewService.AddOrUpdateReviewAsync(ProductId, _currentUserId, userName, _userRating, _userComment);
+
+            Snackbar.Add(_existingReview != null ? L["ReviewUpdated"] : L["ReviewPosted"], Severity.Success);
+
+            // Reload to reflect changes and re-sort
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["ErrorSaving"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task DeleteReviewAsync(ProductReview review)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var isAdmin = authState.User.IsInRole("SuperAdmin") || authState.User.IsInRole("Administrator");
+
+        var success = await ReviewService.DeleteReviewAsync(review.Id, _currentUserId, isAdmin);
+        if (success)
+        {
+            Snackbar.Add(L["ReviewDeleted"], Severity.Success);
+            await LoadData(); // Reload to update averages
+
+            // If we deleted our own review, reset the input form
+            if (review.UserId == _currentUserId)
+            {
+                _existingReview = null;
+                _userRating = 0;
+                _userComment = "";
+            }
+        }
+        else
+        {
+            Snackbar.Add(L["ErrorDeleting"], Severity.Error);
+        }
+    }
+
+    private bool CanDelete(ClaimsPrincipal user, ProductReview review)
+    {
+        if (user.IsInRole("SuperAdmin") || user.IsInRole("Administrator")) return true;
+        return review.UserId == _currentUserId;
+    }
+
+    private void HandleHoveredValueChanged(int? val) { } // Optional hover logic
+
+    private string GetRatingLabel(int rating) => rating switch
+    {
+        1 => L["Rating_Poor"],
+        2 => L["Rating_Fair"],
+        3 => L["Rating_Good"],
+        4 => L["Rating_VeryGood"],
+        5 => L["Rating_Excellent"],
+        _ => ""
+    };
+}

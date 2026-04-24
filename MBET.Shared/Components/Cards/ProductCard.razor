@@ -1,0 +1,245 @@
+﻿@using MudBlazor
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+
+@inject IStringLocalizer<L> L
+@inject NavigationManager Navigation
+@inject ISettingsService SettingsService
+
+<div class="mbet-product-card h-100 hover-card" @onclick="OnViewDetails">
+    <MudPaper Elevation="0" Class="rounded-xl overflow-hidden h-100 glass-card d-flex flex-column">
+
+        <!-- 1. Visual Container -->
+        <div style="position: relative;">
+
+            <!-- OUT OF STOCK OVERLAY -->
+            @if (_isOutOfStock)
+            {
+                <div class="absolute inset-0 z-30 d-flex align-center justify-center"
+                     style="background: rgba(15, 18, 24, 0.7); backdrop-filter: blur(2px);">
+                    <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Medium" Class="font-bold uppercase tracking-wider">
+                        @L["Status_OutOfStock"]
+                    </MudChip>
+                </div>
+            }
+
+            <!-- Badges Layer -->
+            <div class="absolute top-0 left-0 z-20 pa-3 d-flex flex-column gap-2">
+                @if (IsPriority)
+                {
+                    <div class="badge badge-priority shadow-sm">@L["Priority"]</div>
+                }
+                @if (IsOnSale && !_isOutOfStock)
+                {
+                    <div class="badge badge-sale shadow-sm">@L["Sale"]</div>
+                }
+            </div>
+
+            <!-- The Picture Component -->
+            <ProductImage Src="@(string.IsNullOrEmpty(ImageSource) ? "https://via.placeholder.com/400" : ImageSource)"
+                          Alt="@Title" />
+
+            <!-- Hover Overlay (Actions) -->
+            <!-- Only show actions if NOT out of stock -->
+            @if (!_isOutOfStock)
+            {
+                <div class="hover-overlay absolute inset-0 d-flex align-center justify-center gap-2 z-10">
+                    <div @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       Size="Size.Medium"
+                                       Title="@L["AddToCart"]"
+                                       OnClick="OnAddToCart"
+                                       Class="shadow-lg" />
+                    </div>
+
+                    <div @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                       Color="Color.Inherit"
+                                       Variant="Variant.Outlined"
+                                       Size="Size.Medium"
+                                       Class="border-white text-white shadow-lg"
+                                       Title="@L["ViewDetails"]"
+                                       OnClick="OnViewDetails" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- 2. Info Container -->
+        <div class="pa-5 flex-grow-1 d-flex flex-column info-area">
+            <MudStack Spacing="1" Class="flex-grow-1">
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.caption" Class="uppercase font-bold tracking-widest text-secondary">
+                        @Category
+                    </MudText>
+                    <div class="d-flex align-center gap-1 rating-tag">
+                        <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.caption" Class="font-bold">@Rating.ToString("F1")</MudText>
+                    </div>
+                </div>
+
+                <MudText Typo="Typo.h6" Class="@(_isOutOfStock ? "product-title mud-text-secondary" : "product-title")">
+                    @Title
+                </MudText>
+
+                <div class="mt-auto pt-4">
+                    <div class="d-flex align-end gap-2 flex-wrap">
+                        <MudText Typo="Typo.h5" Class="price-text">
+                            @Price.ToString("N0") <span style="font-size: 0.6em; margin-left: 2px;">@_currencySymbol</span>
+                        </MudText>
+                        @if (OriginalPrice.HasValue && OriginalPrice.Value > Price)
+                        {
+                            <MudText Typo="Typo.caption" Class="old-price">
+                                @OriginalPrice.Value.ToString("N0") @_currencySymbol
+                            </MudText>
+                        }
+                    </div>
+                </div>
+            </MudStack>
+        </div>
+    </MudPaper>
+</div>
+
+<style>
+    /* Card Base */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hover-card:hover .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--mud-palette-primary);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(var(--mud-palette-primary-rgb), 0.15);
+    }
+
+    /* Content Area Background */
+    .info-area {
+        background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.2));
+    }
+
+    /* Overlay - Fixed Blur & Centering */
+    .hover-overlay {
+        background: rgba(11, 14, 20, 0.6);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .hover-card:hover .hover-overlay {
+        opacity: 1;
+    }
+
+    /* Utilities */
+    .absolute {
+        position: absolute;
+    }
+
+    .inset-0 {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+    .z-10 {
+        z-index: 10;
+    }
+
+    .z-20 {
+        z-index: 20;
+    }
+
+    /* Typography */
+    .badge {
+        font-size: 0.65rem;
+        font-weight: 900;
+        padding: 4px 10px;
+        border-radius: 4px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .badge-priority {
+        background: var(--mud-palette-primary);
+        color: white;
+    }
+
+    .badge-sale {
+        background: var(--mud-palette-secondary);
+        color: white;
+    }
+
+    .product-title {
+        font-weight: 700;
+        line-height: 1.2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .price-text {
+        font-style: italic;
+        font-weight: 900;
+        color: var(--mud-palette-secondary);
+    }
+
+    .old-price {
+        text-decoration: line-through;
+        opacity: 0.5;
+        margin-bottom: 2px;
+    }
+
+    .rating-tag {
+        background: rgba(255,255,255,0.05);
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+
+    .border-white {
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+
+</style>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    [Parameter] public string Title { get; set; } = "Product";
+
+    // UPDATED: Now strongly typed as decimals to enforce DB alignment and custom formatting
+    [Parameter] public decimal Price { get; set; } = 0m;
+    [Parameter] public decimal? OriginalPrice { get; set; }
+
+    [Parameter] public string Category { get; set; } = "Hardware";
+    [Parameter] public string ImageSource { get; set; } = "";
+    [Parameter] public double Rating { get; set; } = 5.0;
+    [Parameter] public bool IsPriority { get; set; } = false;
+
+    // New Parameters for Availability Logic
+    [Parameter] public int StockQuantity { get; set; }
+    [Parameter] public bool IsManualOutOfStock { get; set; }
+    [Parameter] public EventCallback OnAddToCart { get; set; }
+
+    private string _currencySymbol = "$";
+    private bool IsOnSale => OriginalPrice.HasValue && OriginalPrice.Value > Price;
+    private bool _isOutOfStock => IsManualOutOfStock || StockQuantity <= 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await SettingsService.GetSettingsAsync();
+        if (settings != null)
+        {
+            _currencySymbol = settings.CurrencySymbol;
+        }
+    }
+
+    private void OnViewDetails() => Navigation.NavigateTo($"/product/{Id}");
+}

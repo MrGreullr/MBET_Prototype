@@ -1,0 +1,157 @@
+﻿@page "/admin/products"
+@layout MBET.web.Components.Layout.AdminLayout
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Core.Enums
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+@using MBET.web.Components.Admin.AdminTools
+@using MBET.Shared.Components
+@using MBET.Shared.Components.Buttons
+
+@inject IProductRepository ProductRepo
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IStringLocalizer<L> L
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator,MBETManager")]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <div class="d-flex justify-space-between align-center mb-8">
+        <div>
+            <MudText Typo="Typo.h3" Class="italic font-black">@L["ProductManagement"]</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["ProductManagementDesc"]</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog"
+                   Class="rounded-lg px-8 py-3 font-bold shadow-lg">
+            @L["CreateProduct"]
+        </MudButton>
+    </div>
+
+    <!-- DataGrid with Filtering -->
+    <MudDataGrid Items="@_products" Loading="@_loading" Hover="true" Bordered="false" Elevation="0" 
+                 Class="glass-panel rounded-xl"
+                 Filterable="true" QuickFilter="@_quickFilter">
+        
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">@L["AllProducts"]</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="@L["Search"]" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" Class="mt-0" />
+        </ToolBarContent>
+
+        <Columns>
+            <!-- VISIBILITY STATUS COLUMN -->
+            <PropertyColumn Property="x => x.IsVisible" Title="@L["Status"]" Filterable="true">
+                <CellTemplate>
+                    @if (context.Item.IsVisible)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Visibility">@L["Status_Visible"]</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.VisibilityOff">@L["Status_Hidden"]</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.Title" Title="@L["Title"]" />
+            
+            <PropertyColumn Property="x => x.Category.Name" Title="@L["Category"]" />
+            
+            <PropertyColumn Property="x => x.Price" Title="@L["Price"]">
+                <CellTemplate>
+                    @context.Item.Price.ToString("C0")
+                </CellTemplate>
+            </PropertyColumn>
+            
+            <!-- STOCK STATUS COLUMN -->
+            <PropertyColumn Property="x => x.StockQuantity" Title="@L["Stock"]" Filterable="true">
+                <CellTemplate>
+                    @if (context.Item.IsOutOfStock)
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.ProductionQuantityLimits">@L["Status_OutOfStock"] (Manual)</MudChip>
+                    }
+                    else if (context.Item.StockQuantity > 0)
+                    {
+                         <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">@context.Item.StockQuantity</MudChip>
+                    }
+                    else
+                    {
+                         <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">@L["Status_OutOfStock"]</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            
+            <TemplateColumn Title="@L["Actions"]">
+                <CellTemplate>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Color="Color.Info" 
+                                   OnClick="@(() => EditProduct(context.Item))" />
+                    
+                    <GenericDeleteButton TEntity="Product" 
+                                         Id="@context.Item.Id" 
+                                         OnDeleted="LoadData" 
+                                         DeleteMode="DeletionType.SoftDelete" />
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="Product" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private List<Product> _products = new();
+    private bool _loading = true;
+    private string _searchString;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        var result = await ProductRepo.GetProductsAsync(pageSize: 1000);
+        _products = result.Items.ToList();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    // Quick Filter Logic
+    private Func<Product, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        if (x.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (x.Category?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    };
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<ProductCreationDialog>(L["CreateProduct"], options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled) await LoadData();
+    }
+
+    private async Task EditProduct(Product product) 
+    {
+        var parameters = new DialogParameters<ProductCreationDialog>
+        {
+            { x => x.ProductId, product.Id }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = DialogService.Show<ProductCreationDialog>(L["EditProduct"], parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled) await LoadData();
+    }
+}

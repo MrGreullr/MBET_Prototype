@@ -1,0 +1,111 @@
+﻿@inherits LayoutComponentBase
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Authorization
+@using MBET.Shared.Theme
+@using MBET.Shared.Components.Shared.Interface
+@using MBET.Shared.Components.Shared.Identity
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="MBETTheme.DefaultTheme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudRTLProvider RightToLeft="_isRtl">
+    <MudLayout>
+        <MudAppBar Elevation="0" Fixed="true" Class="px-6 border-b glass-header">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" Class="mr-4" />
+            <AppLogo />
+
+            <div class="d-flex align-center gap-2">
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text" Class="ml-2 font-bold uppercase">ADMIN</MudChip>
+            </div>
+
+            <MudSpacer />
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+                <GlobalSearch />
+
+                <MudDivider Vertical="true" FlexItem="true" DividerType="DividerType.Middle" Class="mx-2" />
+
+                <LanguageSelector />
+                <NotificationBell />
+
+                <MudTooltip Text="@L["BackToStore"]">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Storefront" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/"))" />
+                </MudTooltip>
+
+                <UserProfile />
+            </MudStack>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen"
+                   ClipMode="DrawerClipMode.Always"
+                   Elevation="0"
+                   Class="border-r mud-theme-surface"
+                   Variant="@DrawerVariant.Responsive">
+
+            <MudNavMenu Class="pt-8 px-4">
+                <MudNavLink Href="/admin/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" Class="rounded-lg mb-1">@L["Dashboard"]</MudNavLink>
+
+                <MudText Typo="Typo.caption" Class="px-4 mt-6 mb-2 d-block mud-text-secondary font-bold uppercase">@L["Management"]</MudText>
+
+                <MudNavLink Href="/admin/products" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2" Class="rounded-lg mb-1">@L["Products"]</MudNavLink>
+                <MudNavLink Href="/admin/orders" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ShoppingBag" Class="rounded-lg mb-1">@L["Orders"]</MudNavLink>
+                <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People" Class="rounded-lg mb-1">@L["Users"]</MudNavLink>
+                <MudNavLink Href="/admin/roles" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Security" Class="rounded-lg mb-1">@L["Roles"]</MudNavLink>
+
+                <MudText Typo="Typo.caption" Class="px-4 mt-6 mb-2 d-block mud-text-secondary font-bold uppercase">@L["System"]</MudText>
+
+                <MudNavLink Href="/admin/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings" Class="rounded-lg mb-1">@L["GlobalSettings"]</MudNavLink>
+                <MudNavLink Href="/admin/audits" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.History" Class="rounded-lg mb-1">@L["AuditLogs"]</MudNavLink>
+            </MudNavMenu>
+        </MudDrawer>
+
+        <MudMainContent Class="pa-0">
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4 pa-md-8 mt-16" Style="min-height: 100vh;">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</MudRTLProvider>
+
+@code {
+    bool _drawerOpen = true;
+    bool _isRtl = false;
+    bool _isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isRtl = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isAuthenticated = authState.User.Identity is { IsAuthenticated: true };
+    }
+
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+}
+
+<style>
+    /* Theme-aware glassmorphism.
+           Uses MudBlazor variables so it adapts to Dark/Light mode automatically.
+        */
+    .glass-header {
+        background-color: var(--mud-palette-surface);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        /* Optional: Add slight transparency if supported by theme palette alpha channels,
+               otherwise keep solid for consistency */
+        background-color: rgba(var(--mud-palette-surface-rgb), 0.85);
+    }
+
+    /* Ensure border colors use theme variables */
+    .border-b {
+        border-bottom: 1px solid var(--mud-palette-lines-default) !important;
+    }
+
+    .border-r {
+        border-right: 1px solid var(--mud-palette-lines-default) !important;
+    }
+</style>

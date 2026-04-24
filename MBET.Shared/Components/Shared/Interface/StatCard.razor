@@ -1,0 +1,55 @@
+﻿@using MudBlazor
+
+<!--
+    StatCard
+    Design: Modular KPI card with Icon, Value, Title, and Trend.
+    Matches the specific rounded look in code.html
+-->
+<MudPaper Class="pa-5 rounded-xl border-solid border-1 mud-border-lines-default d-flex flex-column gap-2 hover:shadow-sm transition-all"
+          Elevation="0"
+          Style="background-color: var(--mud-palette-surface);">
+
+    <div class="d-flex justify-space-between align-start mb-2">
+        <!-- Icon Box -->
+        <div class="d-flex align-center justify-center rounded-lg"
+             style="@($"background-color: {IconBgColor}; color: {IconColor}; width: 40px; height: 40px;")">
+            <MudIcon Icon="@Icon" Size="Size.Medium" />
+        </div>
+
+        <!-- Trend / Badge -->
+        @if (!string.IsNullOrEmpty(TrendText))
+        {
+            <div class="d-flex align-center px-2 py-1 rounded-pill"
+                 style="@($"background-color: {TrendBgColor}; color: {TrendColor}; font-size: 0.75rem; font-weight: 700;")">
+                @if (!string.IsNullOrEmpty(TrendIcon))
+                {
+                    <MudIcon Icon="@TrendIcon" Size="Size.Small" Class="mr-1" Style="font-size: 14px;" />
+                }
+                @TrendText
+            </div>
+        }
+    </div>
+
+    <MudText Typo="Typo.body2" Class="mud-text-secondary font-weight-medium">@Title</MudText>
+    <MudText Typo="Typo.h4" Class="font-weight-bold" Style="color: var(--mud-palette-text-primary);">@Value</MudText>
+
+    @if (!string.IsNullOrEmpty(Subtext))
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1">@Subtext</MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public string Title { get; set; }
+    [Parameter] public string Value { get; set; }
+    [Parameter] public string Subtext { get; set; }
+
+    [Parameter] public string Icon { get; set; }
+    [Parameter] public string IconColor { get; set; }
+    [Parameter] public string IconBgColor { get; set; }
+
+    [Parameter] public string TrendText { get; set; }
+    [Parameter] public string TrendIcon { get; set; }
+    [Parameter] public string TrendColor { get; set; }
+    [Parameter] public string TrendBgColor { get; set; }
+}

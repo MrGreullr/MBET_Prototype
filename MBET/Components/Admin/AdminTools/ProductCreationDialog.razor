@@ -1,0 +1,176 @@
+﻿@using MBET.Core.Entities
+@using MBET.Web.Services
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<L> L
+@inject IProductEditorService Service
+
+<MudDialog>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4" KeepPanelsAlive="true">
+
+            <!-- TAB 1: GENERAL INFO -->
+            <MudTabPanel Text="@L["GeneralInfo"]" Icon="@Icons.Material.Filled.Info">
+                <MudForm @ref="form" @bind-IsValid="@success">
+                    <MudTextField @bind-Value="Service.Model.Title" Label="@L["Title"]" Required="true" Variant="Variant.Outlined" Class="mb-4" />
+
+                    <MudSelect @bind-Value="Service.Model.CategoryId" Label="@L["Category"]" Variant="Variant.Outlined" Class="mb-4" Required="true">
+                        @foreach (var cat in Service.Categories)
+                        {
+                            <MudSelectItem Value="@cat.Id">@cat.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <div class="d-flex gap-4 mb-4">
+                        <MudNumericField @bind-Value="Service.Model.Price" Label="@L["Price"]" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                        <MudNumericField @bind-Value="Service.Model.StockQuantity" Label="@L["Stock"]" Variant="Variant.Outlined" />
+                    </div>
+
+                    <MudTextField @bind-Value="Service.Model.Description" Label="@L["Description"]" Variant="Variant.Outlined" Lines="5" Class="mb-4" />
+
+                    <!-- VARIANTS & CONTROLS -->
+                    <MudPaper Class="pa-4 bg-transparent border-dashed border-2 border-gray-500 rounded-lg">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2 font-bold uppercase text-primary">@L["ProductVisibility"]</MudText>
+                        <MudStack Spacing="2">
+                            <MudSwitch @bind-Value="Service.Model.IsVisible" Color="Color.Success" Label="@L["IsVisible"]" />
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-3">@L["IsVisibleHelper"]</MudText>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudSwitch @bind-Value="Service.Model.IsOutOfStock" Color="Color.Error" Label="@L["IsOutOfStock"]" />
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-3">@L["IsOutOfStockHelper"]</MudText>
+
+                            <MudDivider Class="my-2" />
+
+                            <MudSwitch @bind-Value="Service.Model.IsPriority" Color="Color.Primary" Label="@L["MarkAsPriority"]" />
+                        </MudStack>
+                    </MudPaper>
+                </MudForm>
+            </MudTabPanel>
+
+            <!-- TAB 2: IMAGES -->
+            <MudTabPanel Text="@L["Images"]" Icon="@Icons.Material.Filled.Image">
+                <MudStack Spacing="6">
+                    <!-- PRIMARY -->
+                    <MudPaper Class="pa-4 border-dashed border-2 border-gray-500 bg-transparent rounded-lg" Elevation="0">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4 font-bold uppercase text-primary">@L["PrimaryImage"]</MudText>
+                        <div class="d-flex gap-4 align-start">
+                            <MudFileUpload T="IBrowserFile" Accept=".png, .jpg, .jpeg, .webp" FilesChanged="Service.UploadPrimaryImageAsync">
+                                <ActivatorContent>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Disabled="Service.IsUploading">
+                                        @(Service.IsUploading? L["Uploading"] : L["Upload"])
+                                    </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+                            <MudTextField @bind-Value="Service.PrimaryUrlInput" Placeholder="@L["AddExternalUrl"]" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(Service.PrimaryUrlInput))
+                        {
+                            <div class="mt-3 relative d-inline-block">
+                                <MudImage Src="@Service.PrimaryUrlInput" ObjectFit="ObjectFit.Cover" Class="rounded-lg border border-white-10" Width="120" Height="120" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Class="absolute top-0 right-0 ma-1 bg-surface" OnClick="Service.ClearPrimaryImage" />
+                            </div>
+                        }
+                    </MudPaper>
+
+                    <!-- GALLERY -->
+                    <MudPaper Class="pa-4 border-dashed border-2 border-gray-500 bg-transparent rounded-lg" Elevation="0">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4 font-bold uppercase text-primary">@L["GalleryImages"]</MudText>
+                        <div class="d-flex gap-4 align-center mb-4">
+                            <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".png, .jpg, .jpeg, .webp" FilesChanged="Service.UploadGalleryImagesAsync" MaximumFileCount="5">
+                                <ActivatorContent>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.PhotoLibrary" Disabled="Service.IsUploading">@L["AddFiles"]</MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+                            <MudTextField @bind-Value="Service.GalleryUrlInput" Placeholder="@L["AddExternalUrl"]" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Add" OnAdornmentClick="Service.AddGalleryUrl" />
+                        </div>
+                        <MudList T="string" Dense="true" Class="bg-transparent">
+                            @foreach (var img in Service.Model.Images.Where(x => !x.IsPrimary).ToList())
+                            {
+                                <MudListItem Icon="@Icons.Material.Filled.Image">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div class="d-flex align-center gap-2">
+                                            <MudImage Src="@img.ImageUrl" Width="40" Height="40" Class="rounded object-cover" />
+                                            <MudText Typo="Typo.caption" Class="truncate" Style="max-width: 250px;">@img.ImageUrl</MudText>
+                                        </div>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => Service.RemoveGalleryImage(img))" />
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudPaper>
+                    @if (Service.IsUploading)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="rounded-lg" />
+                    }
+                </MudStack>
+            </MudTabPanel>
+
+            <!-- TAB 3: SPECS -->
+            <MudTabPanel Text="@L["Specifications"]" Icon="@Icons.Material.Filled.List">
+                <MudTable Items="@Service.Model.Specifications" Hover="true" Elevation="0" Class="bg-transparent">
+                    <ToolBarContent>
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="Service.AddSpec">@L["AddSpec"]</MudButton>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>@L["Key"]</MudTh>
+                        <MudTh>@L["Value"]</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="spec">
+                        <MudTd><MudTextField @bind-Value="spec.Key" Placeholder="e.g. VRAM" DisableUnderLine="true" /></MudTd>
+                        <MudTd><MudTextField @bind-Value="spec.Value" Placeholder="e.g. 24GB" DisableUnderLine="true" /></MudTd>
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Service.RemoveSpec(spec))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudTabPanel>
+
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Action_Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!success || Service.IsUploading)">
+            @(Service.IsEditMode? L["Action_Update"] : L["Action_Create"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid? ProductId { get; set; }
+
+    MudForm form;
+    bool success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Service.InitializeAsync(ProductId);
+        if (ProductId.HasValue)
+        {
+            await Task.Delay(100);
+            await form.Validate();
+        }
+    }
+
+    private async Task Submit()
+    {
+        await form.Validate();
+        if (success)
+        {
+            try
+            {
+                var result = await Service.SaveAsync();
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            catch
+            {
+                // Service handles Snackbar
+            }
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

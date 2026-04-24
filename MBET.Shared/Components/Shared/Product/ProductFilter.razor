@@ -1,0 +1,99 @@
+﻿@using MudBlazor
+@using MBET.Core.Entities
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+
+@inject IStringLocalizer<L> L
+
+<MudPaper Elevation="0" Class="pa-6 rounded-xl border border-white-10 glass-panel">
+    <MudStack Spacing="6">
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Rounded.FilterList" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Class="font-bold">@L["Filters"]</MudText>
+        </div>
+
+        <MudTextField @bind-Value="SearchTerm"
+                      Label="@L["Search"]"
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      OnAdornmentClick="ApplyFilters"
+                      OnKeyDown="@(e => e.Key == "Enter" ? ApplyFilters() : Task.CompletedTask)" />
+
+        <MudSelect T="Guid ?" Label="@L["Category"]" Variant="Variant.Outlined" @bind-Value="SelectedCategoryId">
+            <MudSelectItem T="Guid ?" Value="null">@L["AllCategories"]</MudSelectItem>
+            @foreach (var cat in Categories)
+            {
+                <MudSelectItem T="Guid ?" Value="@cat.Id">@cat.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <div>
+            <MudText Typo="Typo.caption" Class="font-bold uppercase mud-text-secondary">@L["PriceRange"]</MudText>
+            <div class="d-flex gap-2 mt-2">
+                <MudNumericField @bind-Value="MinPrice" Label="@L["Min"]" Variant="Variant.Outlined" HideSpinButtons="true" />
+                <MudNumericField @bind-Value="MaxPrice" Label="@L["Max"]" Variant="Variant.Outlined" HideSpinButtons="true" />
+            </div>
+        </div>
+
+        <MudSwitch T="bool" @bind-Value="OnlyInStock" Color="Color.Primary" Label="@L["InStockOnly"]" />
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Class="rounded-lg py-3 font-bold"
+                   OnClick="ApplyFilters">
+            @L["ApplyFilters"]
+        </MudButton>
+
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Inherit"
+                   FullWidth="true"
+                   OnClick="ResetFilters">
+            @L["ClearFilters"]
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public List<Category> Categories { get; set; } = new();
+    [Parameter] public EventCallback<FilterModel> OnFilterChanged { get; set; }
+
+    // Changed to Parameters so Parent (Catalog) can control them
+    [Parameter] public string? SearchTerm { get; set; }
+    [Parameter] public Guid? SelectedCategoryId { get; set; }
+    [Parameter] public decimal? MinPrice { get; set; }
+    [Parameter] public decimal? MaxPrice { get; set; }
+    [Parameter] public bool OnlyInStock { get; set; }
+
+    public class FilterModel
+    {
+        public string? Search { get; set; }
+        public Guid? CategoryId { get; set; }
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public bool InStockOnly { get; set; }
+    }
+
+    private async Task ApplyFilters()
+    {
+        await OnFilterChanged.InvokeAsync(new FilterModel
+        {
+            Search = SearchTerm,
+            CategoryId = SelectedCategoryId,
+            MinPrice = MinPrice,
+            MaxPrice = MaxPrice,
+            InStockOnly = OnlyInStock
+        });
+    }
+
+    private async Task ResetFilters()
+    {
+        SearchTerm = null;
+        SelectedCategoryId = null;
+        MinPrice = null;
+        MaxPrice = null;
+        OnlyInStock = false;
+        await ApplyFilters();
+    }
+}

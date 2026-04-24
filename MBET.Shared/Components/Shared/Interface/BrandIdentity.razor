@@ -1,0 +1,33 @@
+﻿@using MudBlazor
+@inject NavigationManager Navigation
+
+<div class="d-flex align-center gap-3 cursor-pointer pa-2 px-4 hover-highlight rounded-2xl transition-all"
+     @onclick="@(() => Navigation.NavigateTo("/"))"
+     style="height: 64px;">
+
+    <!-- Technical Hardware Icon -->
+    <div class="pa-2 rounded-xl mud-theme-primary d-flex align-center justify-center shadow-lg"
+         style="width: 44px; height: 44px; background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);">
+        <MudIcon Icon="@Icons.Material.Filled.SettingsInputComponent" Color="Color.Surface" Size="Size.Medium" />
+    </div>
+
+    <div class="d-flex flex-column">
+        <MudText Typo="Typo.h5" Style="font-weight: 900; letter-spacing: -0.05em; line-height: 1; color: var(--mud-palette-text-primary);">
+            MBET
+        </MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.6rem;">
+            Solutions
+        </MudText>
+    </div>
+</div>
+
+<style>
+    .hover-highlight:hover {
+        background-color: rgba(37, 209, 244, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .transition-all {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+</style>

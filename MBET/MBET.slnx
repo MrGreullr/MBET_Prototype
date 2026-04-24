@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../MBET.Core/MBET.Core.csproj" Id="529de2df-d979-4c29-a11a-6649e31ec589" />
+  <Project Path="../MBET.Infrastructure/MBET.Infrastructure.csproj" Id="a573261a-a6ae-47e4-8321-caf4e0d3551a" />
+  <Project Path="../MBET.Shared/MBET.Shared.csproj" Id="a637deb3-8659-4059-a4e3-e0b35d598a78" />
+  <Project Path="../MBET.Tests/MBET.Tests.csproj" Id="062d1f02-728e-49ed-b795-86285adc64fd" />
+  <Project Path="MBET.web.csproj" />
+</Solution>

@@ -1,0 +1,186 @@
+﻿@inherits LayoutComponentBase
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using MBET.Shared.Theme
+@using MBET.Shared.Components.Shared.Interface
+@using MBET.Shared.Components.Shared.Identity
+@using MBET.Shared.Components.Shared
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject IStringLocalizer<L> L
+
+<MudThemeProvider Theme="MBETTheme.DefaultTheme" @bind-IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudRTLProvider RightToLeft="_isRtl">
+    <MudLayout>
+
+        <MudAppBar Elevation="0" Fixed="true" Color="Color.Transparent" Class="px-4 px-md-6 glass-header">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="@(() => _drawerOpen = !_drawerOpen)"
+                           Class="d-md-none mr-2" />
+
+            <AppLogo />
+
+            <DesktopNavigation />
+
+            <MudSpacer />
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+
+                <div class="d-none d-sm-flex">
+                    <GlobalSearch />
+                </div>
+
+                <div class="d-none d-md-flex align-center gap-2">
+                    <ThemeToggle @bind-IsDarkMode="_isDarkMode" />
+                    <LanguageSelector />
+                    <CartComponent />
+                </div>
+
+                
+
+                @if (!_isAuthenticated)
+                {
+                    <MudStack Row="true" Spacing="2" Class="d-none d-md-flex ml-4">
+                        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick='() => Navigation.NavigateTo("/login")'>@L["Login"]</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/register")' Class="rounded-lg shadow-sm">@L["Join"]</MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="d-none d-md-flex ml-2 ml-md-4">
+                        @if (_isAdmin)
+                        {
+                            <MudTooltip Text="@L["AdminPanel"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Dashboard" Color="Color.Secondary" OnClick='() => Navigation.NavigateTo("/admin/dashboard")' />
+                            </MudTooltip>
+                        }
+                        <UserProfile />
+                    </MudStack>
+                }
+            </MudStack>
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="@DrawerVariant.Temporary" Class="mud-theme-surface pa-4" Width="280px">
+
+            <div class="mb-6">
+                @if (_isAuthenticated)
+                {
+                    <div class="d-flex align-center gap-3 mb-4">
+                        <MudAvatar Color="Color.Primary" Size="Size.Large" Class="font-bold shadow-sm">@_userInitials</MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.subtitle1" Class="font-bold">@_userName</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@_userEmail</MudText>
+                        </div>
+                    </div>
+                    <MudDivider />
+                }
+                else
+                {
+                    <MudText Typo="Typo.h6" Class="mb-3 font-bold">@L["Welcome"]</MudText>
+                    <div class="d-grid gap-2" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Inherit" OnClick='() => Navigation.NavigateTo("/login")'>@L["Login"]</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/register")'>@L["Join"]</MudButton>
+                    </div>
+                }
+            </div>
+
+            <div class="mb-6">
+                <GlobalSearch />
+            </div>
+
+            <MudNavMenu>
+                <MudText Typo="Typo.caption" Class="px-2 mb-2 mud-text-secondary font-bold uppercase">@L["Explore"]</MudText>
+
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">@L["Home"]</MudNavLink>
+                <MudNavLink Href="/catalog" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Store">@L["Catalog"]</MudNavLink>
+@*                 <MudNavLink Href="/tech" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Computer">@L["Tech"]</MudNavLink>*@
+                @if (_isAuthenticated)
+                {
+                    <MudDivider Class="my-4" />
+
+                    <MudText Typo="Typo.caption" Class="px-2 mb-2 mud-text-secondary font-bold uppercase">@L["Account"]</MudText>
+
+                    <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person">@L["MyProfile"]</MudNavLink>
+                    <MudNavLink Href="/my-orders" Icon="@Icons.Material.Filled.ShoppingBag">@L["MyOrders"]</MudNavLink>
+
+                    @if (_isAdmin)
+                    {
+                        <MudNavLink Href="/admin/dashboard" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Secondary">@L["AdminPanel"]</MudNavLink>
+                    }
+
+                    <MudNavLink Href="/account/logout" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">@L["SignOut"]</MudNavLink>
+                }
+
+                <MudDivider Class="my-4" />
+
+                <MudText Typo="Typo.caption" Class="px-2 mb-2 mud-text-secondary font-bold uppercase">@L["Settings"]</MudText>
+                <div class="d-flex px-2 py-2 gap-4 align-center">
+                    <ThemeToggle @bind-IsDarkMode="_isDarkMode" />
+                    <LanguageSelector />
+                    <CartComponent />
+                </div>
+            </MudNavMenu>
+        </MudDrawer>
+
+        <MudMainContent Class="pa-0">
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-0 mt-16 d-flex flex-column" Style="min-height: 100vh;">
+                <div class="flex-grow-1">
+                    @Body
+                </div>
+                <AppFooter />
+            </MudContainer>
+        </MudMainContent>
+
+    </MudLayout>
+</MudRTLProvider>
+
+@code {
+    bool _drawerOpen = false;
+    bool _isRtl = false;
+    bool _isAuthenticated = false;
+    bool _isAdmin = false;
+    private bool _isDarkMode = true;
+
+    // User Info for Drawer
+    private string? _userName;
+    private string? _userEmail;
+    private string _userInitials = "G";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isRtl = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        _isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+
+        if (_isAuthenticated)
+        {
+            _isAdmin = user.IsInRole("Administrator") || user.IsInRole("SuperAdmin");
+
+            // Extract User Data for Mobile Drawer Display
+            _userName = user.Identity.Name;
+            _userEmail = user.FindFirst(ClaimTypes.Email)?.Value;
+
+            var firstName = user.FindFirst(ClaimTypes.GivenName)?.Value;
+            var lastName = user.FindFirst(ClaimTypes.Surname)?.Value;
+            if (!string.IsNullOrEmpty(firstName)) _userName = $"{firstName} {lastName}";
+
+            if (!string.IsNullOrEmpty(_userName))
+            {
+                var parts = _userName.Split(' ');
+                _userInitials = parts.Length > 1 ? $"{parts[0][0]}{parts[1][0]}".ToUpper() : _userName[0].ToString().ToUpper();
+            }
+        }
+    }
+}

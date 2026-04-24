@@ -1,0 +1,345 @@
+﻿@page "/admin/orders"
+@layout MBET.web.Components.Layout.AdminLayout
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using MBET.Infrastructure.Entities
+@using MBET.Core.Enums
+@using MBET.Shared.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using MBET.web.Components.Admin.AdminTools
+@using MBET.Shared.Components.Buttons
+
+@inject IOrderRepository OrderRepo
+@inject IOrderService OrderService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@inject ISettingsService SettingsService
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator,ShopManager,SupportAgent")]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h3" Class="italic font-black">@L["OrderManagement"]</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["ManageOrdersDesc"]</MudText>
+        </div>
+        <!-- Refresh Button -->
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="LoadData" />
+    </div>
+
+    <!-- Search Toolbar & Filters -->
+    <MudPaper Class="pa-4 mb-4 rounded-xl glass-panel" Elevation="0">
+        <div class="d-flex flex-wrap align-center gap-4">
+            <!-- Search -->
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="@L["SearchOrderPlaceholder"]"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          Immediate="true"
+                          Style="min-width: 300px;" />
+        </div>
+
+        <MudDivider Class="my-4" />
+
+        <!-- Quick Status Filters -->
+        <MudChipSet T="OrderStatus?" SelectedValue="_currentStatusFilter" SelectedValueChanged="OnStatusFilterChanged" CheckMarkSelection="true" CheckMark>
+            <MudChip T="OrderStatus?" Value="@((OrderStatus?)null)" Text="@L["All"]" Color="Color.Default" Variant="Variant.Text" />
+            <MudChip T="OrderStatus?" Value="@(OrderStatus.Pending)" Text="@L["Status_Pending"]" Color="Color.Warning" />
+            <MudChip T="OrderStatus?" Value="@(OrderStatus.Processing)" Text="@L["Status_Processing"]" Color="Color.Info" />
+            <MudChip T="OrderStatus?" Value="@(OrderStatus.Shipped)" Text="@L["Status_Shipped"]" Color="Color.Primary" />
+            <MudChip T="OrderStatus?" Value="@(OrderStatus.Delivered)" Text="@L["Status_Delivered"]" Color="Color.Success" />
+            <MudChip T="OrderStatus?" Value="@(OrderStatus.Returned)" Text="@L["Status_Returned"]" Color="Color.Dark" />
+            <MudChip T="OrderStatus?" Value="@(OrderStatus.Cancelled)" Text="@L["Status_Cancelled"]" Color="Color.Error" />
+        </MudChipSet>
+    </MudPaper>
+
+    <!-- Orders Data Grid with Sortable Headers -->
+    <MudDataGrid T="Order" Items="@_orders"
+                 Filterable="false"
+                 SortMode="SortMode.Single"
+                 Groupable="false"
+                 Loading="@_loading"
+                 Hover="true" Class="rounded-xl overflow-hidden glass-panel" Elevation="0">
+
+        <Columns>
+            <!-- Order Number -->
+            <PropertyColumn Property="x => x.OrderNumber" Title="@L["OrderNumber"]" Sortable="true">
+                <CellTemplate>
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" Class="mud-text-secondary" />
+                        <MudText Typo="Typo.body2" Class="font-bold">@context.Item.OrderNumber</MudText>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <!-- Date -->
+            <PropertyColumn Property="x => x.CreatedAt" Title="@L["Date"]" Sortable="true" InitialDirection="SortDirection.Descending">
+                <CellTemplate>
+                    <MudText Typo="Typo.caption">@context.Item.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <!-- Customer -->
+            <PropertyColumn Property="x => x.CustomerName" Title="@L["Customer"]" Sortable="true">
+                <CellTemplate>
+                    <div>
+                        <MudText Typo="Typo.body2">@context.Item.CustomerName</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Item.CustomerPhone</MudText>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <!-- Total -->
+            <PropertyColumn Property="x => x.GrandTotal" Title="@L["Total"]" Sortable="true">
+                <CellTemplate>
+                    <MudText Typo="Typo.body2" Class="font-bold text-success">
+                        @context.Item.GrandTotal.ToString("N0") <span style="font-size: 0.75em;">@_currencySymbol</span>
+                    </MudText>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <!-- Status (Visual) -->
+            <PropertyColumn Property="x => x.Status" Title="@L["Status"]" Sortable="true">
+                <CellTemplate>
+                    <MudChip Size="Size.Small" Color="@GetStatusColor(context.Item.Status)" Variant="Variant.Filled">
+                        @L[$"Status_{context.Item.Status}"]
+                    </MudChip>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <!-- Workflow Actions Column -->
+            <PropertyColumn Property="x => x.Status" Title="@L["Action"]" Sortable="false">
+                <CellTemplate>
+                    <MudStack Row="true" Justify="Justify.Center" AlignItems="AlignItems.Center" Spacing="2">
+                        <!-- Next Step Button -->
+                        @if (CanProgress(context.Item.Status))
+                        {
+                            var nextStatus = GetNextStatus(context.Item.Status);
+                            <MudTooltip Text="@string.Format(L["MoveTo"], L[$"Status_{nextStatus}"])">
+                                <MudIconButton Icon="@GetNextStatusIcon(nextStatus)"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@((e) => UpdateStatus(context.Item, nextStatus))" />
+                            </MudTooltip>
+                        }
+
+                        <!-- Cancel / Return Button -->
+                        @if (context.Item.Status == OrderStatus.Delivered)
+                        {
+                            <MudTooltip Text="@L["MarkReturned"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.AssignmentReturn"
+                                               Color="Color.Warning"
+                                               Size="Size.Small"
+                                               OnClick="@((e) => ConfirmAction(context.Item, OrderStatus.Returned))" />
+                            </MudTooltip>
+                        }
+                        else if (context.Item.Status != OrderStatus.Cancelled && context.Item.Status != OrderStatus.Returned)
+                        {
+                            <MudTooltip Text="@L["CancelOrder"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@((e) => ConfirmAction(context.Item, OrderStatus.Cancelled))" />
+                            </MudTooltip>
+                        }
+                    </MudStack>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <!-- Admin Actions Column -->
+            <PropertyColumn Property="x => x.Status" Title="@L["Manage"]" Sortable="false">
+                <CellTemplate>
+                    <div class="d-flex gap-2 justify-center">
+                        <MudTooltip Text="@L["Edit"]">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Default"
+                                           Size="Size.Small"
+                                           OnClick="@((e) => OpenOrderDetails(context.Item))" />
+                        </MudTooltip>
+
+                        <!-- GenericDeleteButton: Now uses internal interception for restocking -->
+                        <GenericDeleteButton TEntity="Order"
+                                             Id="@context.Item.Id"
+                                             DeleteMode="DeletionType.SoftDelete"
+                                             OnDeleted="LoadData"
+                                             Size="Size.Small" />
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="Order" />
+        </PagerContent>
+    </MudDataGrid>
+
+</MudContainer>
+
+@code {
+    private List<Order> _allOrders = new();
+    private List<Order> _orders = new();
+    private bool _loading = true;
+
+    // Filters
+    private string _searchString = "";
+    private OrderStatus? _currentStatusFilter;
+    private string _currencySymbol = "$";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await SettingsService.GetSettingsAsync();
+        if (settings != null)
+        {
+            _currencySymbol = settings.CurrencySymbol;
+        }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _allOrders = (await OrderRepo.GetAllOrdersAsync()).ToList();
+        ApplyFilter();
+        _loading = false;
+    }
+
+    private void ApplyFilter()
+    {
+        var query = _allOrders.AsEnumerable();
+
+        // 1. Status Filter
+        if (_currentStatusFilter.HasValue)
+        {
+            query = query.Where(x => x.Status == _currentStatusFilter.Value);
+        }
+
+        // 2. Search Filter
+        if (!string.IsNullOrWhiteSpace(_searchString))
+        {
+            query = query.Where(x =>
+                (x.OrderNumber?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.CustomerName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.CustomerPhone?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+        }
+
+        _orders = query.ToList();
+        StateHasChanged();
+    }
+
+    private void OnStatusFilterChanged(OrderStatus? status)
+    {
+        _currentStatusFilter = status;
+        ApplyFilter();
+    }
+
+    // --- LOGIC: Status Progression ---
+
+    private bool CanProgress(OrderStatus current)
+    {
+        return current != OrderStatus.Delivered &&
+               current != OrderStatus.Cancelled &&
+               current != OrderStatus.Returned;
+    }
+
+    private OrderStatus GetNextStatus(OrderStatus current)
+    {
+        return current switch
+        {
+            OrderStatus.Pending => OrderStatus.Processing,
+            OrderStatus.Processing => OrderStatus.Shipped,
+            OrderStatus.Shipped => OrderStatus.Delivered,
+            _ => current
+        };
+    }
+
+    private string GetNextStatusIcon(OrderStatus next)
+    {
+        return next switch
+        {
+            OrderStatus.Processing => Icons.Material.Filled.ThumbUp, // Validate
+            OrderStatus.Shipped => Icons.Material.Filled.LocalShipping, // Ship
+            OrderStatus.Delivered => Icons.Material.Filled.CheckCircle, // Deliver
+            _ => Icons.Material.Filled.ArrowForward
+        };
+    }
+
+    private Color GetStatusColor(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => Color.Warning,
+        OrderStatus.Processing => Color.Info,
+        OrderStatus.Shipped => Color.Primary,
+        OrderStatus.Delivered => Color.Success,
+        OrderStatus.Cancelled => Color.Error,
+        OrderStatus.Returned => Color.Dark,
+        _ => Color.Default
+    };
+
+    private async Task UpdateStatus(Order order, OrderStatus newStatus)
+    {
+        try
+        {
+            await OrderService.UpdateOrderStatusAsync(order.Id, newStatus);
+            order.Status = newStatus; // Update UI immediately
+            Snackbar.Add(L["StatusUpdated"], Severity.Success);
+
+            // Re-apply filter if the new status hides it
+            if (_currentStatusFilter != null && _currentStatusFilter != newStatus)
+            {
+                ApplyFilter();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            await LoadData(); // Revert UI on error
+        }
+    }
+
+    private async Task ConfirmAction(Order order, OrderStatus targetStatus)
+    {
+        var message = targetStatus == OrderStatus.Cancelled
+            ? L["ConfirmCancelOrder"]
+            : L["ConfirmReturnOrder"];
+
+        bool? result = await DialogService.ShowMessageBox(
+            L["Warning"],
+            message,
+            yesText: L["Yes"], cancelText: L["No"]);
+
+        if (result == true)
+        {
+            await UpdateStatus(order, targetStatus);
+        }
+    }
+
+    // --- Admin Management Actions ---
+
+    private async Task OpenOrderDetails(Order order)
+    {
+        var parameters = new DialogParameters<OrderDetailsDialog>
+        {
+            { x => x.OrderId, order.Id }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<OrderDetailsDialog>(L["OrderDetails"], parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData(); // Refresh if changes were saved
+        }
+    }
+}

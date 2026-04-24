@@ -1,0 +1,171 @@
+﻿@page "/profile"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using MBET.Core.Entities.Identity
+@using Microsoft.AspNetCore.Identity
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@attribute [Authorize]
+
+<PageTitle>@L["MyProfile"] | MBET</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-8 pb-16">
+    <MudGrid Spacing="6">
+        <!-- Sidebar Info -->
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="pa-8 rounded-xl glass-panel text-center h-100">
+                <div class="relative d-inline-block mb-4">
+                    <MudAvatar Style="width:120px; height:120px; font-size: 2rem;" Color="Color.Primary" Variant="Variant.Filled" Class="font-bold shadow-lg">@_initials</MudAvatar>
+                </div>
+
+                <MudText Typo="Typo.h5" Class="font-bold">@_user?.FirstName @_user?.LastName</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">@(_user?.Email)</MudText>
+
+                <MudChip T="string" Color="@(_user?.IsVIP == true ? Color.Primary : Color.Default)" Variant="Variant.Text" Class="font-bold mb-8">
+                    @(_user?.IsVIP == true ? "VIP MEMBER" : L["Member"])
+                </MudChip>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Main Content -->
+        <MudItem xs="12" md="8">
+            <MudStack Spacing="6">
+
+                <!-- Section 1: Personal Info -->
+                <MudPaper Elevation="0" Class="pa-8 rounded-xl glass-panel">
+                    <div class="d-flex align-center mb-6">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Class="mr-3" />
+                        <MudText Typo="Typo.h6" Class="font-bold">@L["PersonalInfo"]</MudText>
+                    </div>
+                    <MudGrid Spacing="4">
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["FirstName"]" @bind-Value="_firstName" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["LastName"]" @bind-Value="_lastName" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["Phone"]" @bind-Value="_phoneNumber" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveProfile">@L["SaveChanges"]</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Section 2: Shipping Address -->
+                <MudPaper Elevation="0" Class="pa-8 rounded-xl glass-panel">
+                    <div class="d-flex align-center mb-6">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Primary" Class="mr-3" />
+                        <MudText Typo="Typo.h6" Class="font-bold">@L["Shipping"]</MudText>
+                    </div>
+                    <MudGrid Spacing="4">
+                        <MudItem xs="12">
+                            <MudTextField Label="@L["StreetAddress"]" @bind-Value="_shippingStreet" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["City"]" @bind-Value="_shippingCity" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["State"]" @bind-Value="_shippingState" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["ZipCode"]" @bind-Value="_shippingZip" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Label="@L["Country"]" @bind-Value="_shippingCountry" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAddress">@L["UpdateAddress"]</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Section 3: Security -->
+                <MudPaper Elevation="0" Class="pa-8 rounded-xl glass-panel">
+                    <div class="d-flex align-center mb-6">
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Class="mr-3" />
+                        <MudText Typo="Typo.h6" Class="font-bold">@L["Security"]</MudText>
+                    </div>
+                    <div class="d-flex align-center justify-space-between">
+                        <div>
+                            <MudText Typo="Typo.body1" Class="font-bold">@L["Password"]</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["LastChanged"]</MudText>
+                        </div>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/forgot-password">@L["ChangePassword"]</MudButton>
+                    </div>
+                </MudPaper>
+
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private ApplicationUser? _user;
+    private string _initials = "";
+    private string _firstName = "";
+    private string _lastName = "";
+    private string _phoneNumber = "";
+    private string _shippingStreet = "";
+    private string _shippingCity = "";
+    private string _shippingState = "";
+    private string _shippingZip = "";
+    private string _shippingCountry = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userPrincipal = authState.User;
+
+        if (userPrincipal.Identity?.IsAuthenticated == true)
+        {
+            _user = await UserManager.GetUserAsync(userPrincipal);
+            if (_user != null) LoadData();
+        }
+    }
+
+    private void LoadData()
+    {
+        _firstName = _user?.FirstName ?? "";
+        _lastName = _user?.LastName ?? "";
+        _phoneNumber = _user?.PhoneNumber ?? "";
+        _shippingStreet = _user?.ShippingStreet ?? "";
+        _shippingCity = _user?.ShippingCity ?? "";
+        _shippingState = _user?.ShippingState ?? "";
+        _shippingZip = _user?.ShippingZipCode ?? "";
+        _shippingCountry = _user?.ShippingCountry ?? "";
+
+        if (!string.IsNullOrEmpty(_firstName)) _initials = _firstName[0].ToString();
+        if (!string.IsNullOrEmpty(_lastName)) _initials += _lastName[0].ToString();
+    }
+
+    private async Task SaveProfile()
+    {
+        if (_user == null) return;
+        _user.FirstName = _firstName;
+        _user.LastName = _lastName;
+        _user.PhoneNumber = _phoneNumber;
+        var result = await UserManager.UpdateAsync(_user);
+        if (result.Succeeded) Snackbar.Add(L["ProfileUpdatedSuccess"], Severity.Success);
+        else Snackbar.Add(L["ErrorSaving"], Severity.Error);
+    }
+
+    private async Task SaveAddress()
+    {
+        if (_user == null) return;
+        _user.ShippingStreet = _shippingStreet;
+        _user.ShippingCity = _shippingCity;
+        _user.ShippingState = _shippingState;
+        _user.ShippingZipCode = _shippingZip;
+        _user.ShippingCountry = _shippingCountry;
+        var result = await UserManager.UpdateAsync(_user);
+        if (result.Succeeded) Snackbar.Add(L["AddressUpdatedSuccess"], Severity.Success);
+        else Snackbar.Add(L["ErrorSaving"], Severity.Error);
+    }
+}

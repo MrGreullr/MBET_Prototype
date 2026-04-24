@@ -1,0 +1,156 @@
+﻿@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<L> L
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<MudMenu AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight"
+         LockScroll="true"
+         Dense="true"
+         Class="ml-2"
+         PopoverClass="profile-popover mt-2">
+
+    <ActivatorContent>
+        <div class="d-flex align-center cursor-pointer user-pill px-3 py-1 rounded-pill transition-all gap-3">
+
+            <div class="d-none d-md-block text-right">
+                <MudText Typo="Typo.body2" Class="font-bold leading-tight">
+                    @(_userName ?? L["Guest"])
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Primary" Class="font-bold uppercase tracking-wider" Style="font-size: 0.65rem;">
+                    @(_userRole ?? L["Member"])
+                </MudText>
+            </div>
+
+            <div class="relative">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium" Class="font-bold shadow-sm">
+                    @(_userInitials)
+                </MudAvatar>
+                <div class="absolute bottom-0 right-0 size-3 bg-success rounded-circle"
+                     style="border: 2px solid var(--mud-palette-appbar-background);"></div>
+            </div>
+
+            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color.Inherit" Size="Size.Small" Class="d-none d-md-block opacity-50" />
+        </div>
+    </ActivatorContent>
+
+    <ChildContent>
+        <div class="pa-6 d-flex flex-column align-center" style="min-width: 240px;">
+            <MudAvatar Color="Color.Primary" Style="width:64px; height:64px; font-size:1.5rem;" Class="mb-3 font-bold shadow-lg">
+                @(_userInitials)
+            </MudAvatar>
+            <MudText Typo="Typo.h6" Class="font-bold">@(_userName)</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-3">@(_userEmail)</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined" Class="font-bold">@(_userRole)</MudChip>
+        </div>
+
+        <MudDivider Class="my-2" />
+
+        <div class="px-2 pb-2">
+            <MudMenuItem Icon="@Icons.Material.Rounded.Person" Href="/profile" Class="rounded-lg mb-1 font-bold">@L["MyProfile"]</MudMenuItem>
+
+            @if (_isAdmin)
+            {
+                <MudMenuItem Icon="@Icons.Material.Rounded.AdminPanelSettings" Href="/admin/dashboard" Class="rounded-lg mb-1 font-bold">@L["AdminPanel"]</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Rounded.Shop" Href="/my-orders" Class="rounded-lg mb-1 font-bold">@L["MyOrders"]</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Rounded.Settings" Href="/admin/settings" Class="rounded-lg mb-1 font-bold">@L["Settings"]</MudMenuItem>
+            }
+            else
+            {
+                <MudMenuItem Icon="@Icons.Material.Rounded.Shop" Href="/my-orders" Class="rounded-lg mb-1 font-bold">@L["MyOrders"]</MudMenuItem>
+            }
+
+            <MudDivider Class="my-2" />
+
+            <MudMenuItem Icon="@Icons.Material.Rounded.Logout" IconColor="Color.Error" OnClick="Logout" Class="rounded-lg font-bold text-error hover-error">@L["SignOut"]</MudMenuItem>
+        </div>
+    </ChildContent>
+</MudMenu>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string? _userName;
+    private string? _userEmail;
+    private string? _userRole;
+    private string _userInitials = "U";
+    private bool _isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state = AuthState != null ? await AuthState : await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = state.User;
+
+            if (user.Identity is { IsAuthenticated: true })
+            {
+                _userName = user.Identity.Name;
+                _userEmail = user.FindFirst(ClaimTypes.Email)?.Value;
+
+                var firstName = user.FindFirst(ClaimTypes.GivenName)?.Value;
+                var lastName = user.FindFirst(ClaimTypes.Surname)?.Value;
+                if (!string.IsNullOrEmpty(firstName)) _userName = $"{firstName} {lastName}";
+
+                _userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? L["Member"];
+
+                // Simplified manual check
+                _isAdmin = user.IsInRole("SuperAdmin") || user.IsInRole("Administrator") || user.IsInRole("ShopManager");
+
+                if (!string.IsNullOrEmpty(_userName))
+                {
+                    var parts = _userName.Split(' ');
+                    _userInitials = parts.Length > 1 ? $"{parts[0][0]}{parts[1][0]}".ToUpper() : _userName[0].ToString().ToUpper();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"UserProfile Init Error: {ex.Message}");
+        }
+    }
+
+    private void Logout() => Navigation.NavigateTo("/account/logout", forceLoad: true);
+}
+
+<style>
+    /* Theme-Aware Styles
+           Using CSS variables (--mud-palette-...) ensures this works in Light & Dark modes.
+        */
+
+    .user-pill {
+        border: 1px solid var(--mud-palette-lines-default);
+        background-color: transparent;
+    }
+
+        .user-pill:hover {
+            background-color: rgba(var(--mud-palette-text-primary-rgb), 0.05);
+            border-color: var(--mud-palette-primary);
+        }
+
+    /* Target the popover specifically to fix background/glass issues */
+    .profile-popover {
+        /* Ensures the dropdown background matches the theme surface (White or Obsidian) */
+        background-color: var(--mud-palette-surface) !important;
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--mud-palette-lines-default) !important;
+    }
+
+    .size-3 {
+        width: 12px;
+        height: 12px;
+    }
+
+    .text-error {
+        color: var(--mud-palette-error) !important;
+    }
+
+    .hover-error:hover {
+        background-color: rgba(var(--mud-palette-error-rgb), 0.1) !important;
+    }
+</style>

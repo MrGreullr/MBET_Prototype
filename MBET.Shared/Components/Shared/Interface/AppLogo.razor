@@ -1,0 +1,24 @@
+﻿@using MudBlazor
+@using MBET.Core.Interfaces
+@using MBET.Core.Entities
+@inject NavigationManager Navigation
+@inject ISettingsService SettingsService
+
+<div class="d-flex align-center gap-3 cursor-pointer pa-2 px-3 rounded-lg transition-all"
+     @onclick="@(() => Navigation.NavigateTo("/"))"
+     style="height: 100%;">
+
+    @if (_settings != null)
+    {
+        <MudImage Src="@_settings.LogoUrl" Height="@_settings.LogoHeight" Alt="@_settings.SiteName" ObjectFit="ObjectFit.Contain" />
+    }
+</div>
+
+@code {
+    private GlobalSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+    }
+}

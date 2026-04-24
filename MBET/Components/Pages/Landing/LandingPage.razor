@@ -1,0 +1,119 @@
+﻿@page "/"
+@using MBET.Shared.Components.Shared
+@using MBET.Shared.Components.Cards
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Infrastructure.Services
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject ISettingsService SettingsService
+@inject IProductService ProductService
+@inject CartService CartService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+
+<PageTitle>@(_settings?.SiteName ?? "MBET") | @(_settings?.SiteDescription ?? "Hardware")</PageTitle>
+
+@if (_settings != null)
+{
+    <MudStack Spacing="0">
+        <!-- Hero Section -->
+        <HeroSection />
+
+        <!-- Features (Visibility controlled by Settings) -->
+        <FeatureSection />
+
+        <!-- Fresh Drops / Priority Catalog -->
+        @if (_settings.ShowFreshDropsSection)
+        {
+            <section class="py-16 px-6 lg:px-20">
+                <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-0">
+                    <div class="d-flex flex-wrap justify-space-between align-end mb-12 gap-4">
+                        <div>
+                            <MudText Typo="Typo.h3" Class="italic font-black mb-1">
+                                @(_settings.LandingDisplayMode == ProductDisplayMode.Priority ? L["Priority"] : L["FreshDrops"])
+                                <span style="color:var(--mud-palette-primary)">Drops</span>
+                            </MudText>
+                            <MudText Typo="Typo.body1" Class="mud-text-secondary">@L["LimitedAvailability"]</MudText>
+                        </div>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Class="rounded-pill px-8 py-2 font-bold border-2" Href="/catalog">@L["ViewDetails"]</MudButton>
+                    </div>
+
+                    @if (_products == null)
+                    {
+                        <MudGrid Spacing="6">
+                            @for (int i = 0; i < 4; i++)
+                            {
+                                <MudItem xs="12" sm="6" md="3">
+                                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="300px" Class="rounded-xl" />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+                    else if (!_products.Any())
+                    {
+                        <div class="pa-8 border-dashed border-2 rounded-xl text-center mud-text-secondary border-gray-500">
+                            <MudText>No products available yet. Check back soon!</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudGrid Spacing="6">
+                            @foreach (var p in _products)
+                            {
+                                <MudItem xs="12" sm="6" md="3">
+                                    <ProductCard Id="@p.Id"
+                                                 Title="@p.Title"
+                                                 Price="@p.Price"
+                                                 OriginalPrice="@(p.OriginalPrice)"
+                                                 Category="@p.Category?.Name"
+                                                 ImageSource="@(p.Images.FirstOrDefault(x => x.IsPrimary)?.ImageUrl ?? "https://via.placeholder.com/400")"
+                                                 IsPriority="@p.IsPriority"
+                                                 Rating="@p.Rating"
+                                                 StockQuantity="@p.StockQuantity"
+                                                 IsManualOutOfStock="@p.IsOutOfStock"
+                                                 OnAddToCart="@(() => AddToCart(p))" />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+                </MudContainer>
+            </section>
+        }
+
+        <!-- Join Collective -->
+        <JoinCollective />
+    </MudStack>
+}
+
+@code {
+    private GlobalSettings? _settings;
+    private IEnumerable<Product>? _products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+
+        if (_settings != null && _settings.ShowFreshDropsSection)
+        {
+            // Fetch real products via Service
+            _products = await ProductService.GetFreshDropsAsync(
+                _settings.LandingProductCount,
+                _settings.LandingDisplayMode
+            );
+        }
+    }
+
+    private void AddToCart(Product product)
+    {
+        if (product.IsOutOfStock || product.StockQuantity <= 0)
+        {
+            Snackbar.Add(L["Status_OutOfStock"], Severity.Error);
+            return;
+        }
+
+        CartService.AddToCart(product);
+        Snackbar.Add($"{product.Title} {L["AddedToCart"]}", Severity.Success);
+    }
+}

@@ -1,0 +1,57 @@
+﻿@using MudBlazor
+@using MBET.Core.Enums
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<L> L
+
+<MudDialog Class="glass-panel">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudIcon Icon="@Icons.Material.Filled.WarningAmber"
+                     Color="@(DeleteMode == DeletionType.HardDelete ? Color.Error : Color.Warning)"
+                     Size="Size.Large"
+                     Class="align-self-center mb-2" />
+
+            <MudText Typo="Typo.h6" Align="Align.Center">
+                @L["Delete_Confirm_Title"]
+            </MudText>
+
+            <MudText Typo="Typo.body1" Align="Align.Center">
+                @if (DeleteMode == DeletionType.HardDelete)
+                {
+                    <span class="mud-error-text fw-bold">@L["Delete_Hard_Warning"]</span>
+                }
+                else
+                {
+                    @L["Delete_Soft_Warning", EntityName]
+                }
+            </MudText>
+
+            @if (DeleteMode == DeletionType.HardDelete)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-2 rounded-lg">
+                    @L["Delete_Irreversible_Message"]
+                </MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["Action_Cancel"]</MudButton>
+        <MudButton OnClick="Submit"
+                   Variant="@(DeleteMode == DeletionType.HardDelete ? Variant.Filled : Variant.Outlined)"
+                   Color="Color.Error"
+                   Class="ml-2">
+            @L["Action_Delete"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string EntityName { get; set; } = "Item";
+    [Parameter] public DeletionType DeleteMode { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    private void Cancel() => MudDialog.Cancel();
+}

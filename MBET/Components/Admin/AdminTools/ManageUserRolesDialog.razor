@@ -1,0 +1,134 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using MBET.Core.Entities.Identity
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<ApplicationRole> RoleManager
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Administrator")]
+
+<MudDialog Class="glass-panel">
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center py-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (_user == null)
+        {
+            <MudAlert Severity="Severity.Error">@L["UserNotFound"]</MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-4">
+                @L["ManageRolesDesc"] <strong class="text-primary">@_user.Email</strong>
+            </MudText>
+
+            <MudPaper Elevation="0" Class="pa-4 bg-transparent border border-white-10 rounded-lg">
+                <MudGrid>
+                    @foreach (var role in _roleSelections.Keys.ToList())
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch @bind-Value="_roleSelections[role]" Color="Color.Primary" Label="@role" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveRolesAsync" Disabled="@_loading">
+            @L["SaveRoles"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public Guid UserId { get; set; }
+
+    private ApplicationUser? _user;
+    private bool _loading = true;
+    private Dictionary<string, bool> _roleSelections = new();
+    private IList<string> _originalRoles = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+
+        _user = await UserManager.FindByIdAsync(UserId.ToString());
+
+        if (_user != null)
+        {
+            // 1. Get all available system roles
+            var allRoles = RoleManager.Roles.Select(r => r.Name).Where(r => r != null).ToList();
+
+            // 2. Get user's current roles
+            _originalRoles = await UserManager.GetRolesAsync(_user);
+
+            // 3. Populate Dictionary for the Switches
+            foreach (var role in allRoles)
+            {
+                if (role != null)
+                {
+                    _roleSelections[role] = _originalRoles.Contains(role);
+                }
+            }
+        }
+
+        _loading = false;
+    }
+
+    private async Task SaveRolesAsync()
+    {
+        if (_user == null) return;
+
+        _loading = true;
+
+        try
+        {
+            // Figure out which roles to ADD
+            var rolesToAdd = _roleSelections
+                .Where(x => x.Value && !_originalRoles.Contains(x.Key))
+                .Select(x => x.Key)
+                .ToList();
+
+            // Figure out which roles to REMOVE
+            var rolesToRemove = _roleSelections
+                .Where(x => !x.Value && _originalRoles.Contains(x.Key))
+                .Select(x => x.Key)
+                .ToList();
+
+            // Apply changes
+            if (rolesToAdd.Any())
+            {
+                await UserManager.AddToRolesAsync(_user, rolesToAdd);
+            }
+
+            if (rolesToRemove.Any())
+            {
+                await UserManager.RemoveFromRolesAsync(_user, rolesToRemove);
+            }
+
+            Snackbar.Add(L["RolesUpdatedSuccess"], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(L["ErrorUpdatingRoles"], Severity.Error);
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

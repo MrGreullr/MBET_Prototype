@@ -1,0 +1,117 @@
+﻿@using MudBlazor
+@using MBET.Core.Enums
+@using MBET.Core.Interfaces
+@using MBET.Shared.Components.Dialog
+@using Microsoft.Extensions.Localization
+@using Microsoft.Extensions.DependencyInjection
+@using MBET.Core.Entities
+
+@typeparam TEntity where TEntity : class
+
+@inject IRepository<TEntity> Repository
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IStringLocalizer<L> L
+@inject IServiceProvider ServiceProvider
+
+<!-- TRIGGER BUTTON -->
+<MudTooltip Text="@TooltipText">
+    @if (IsProcessing)
+    {
+        <MudProgressCircular Size="@Size" Color="Color.Error" Indeterminate="true" Class="mx-2" />
+    }
+    else
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                       Color="Color.Error"
+                       Variant="Variant.Outlined"
+                       Size="@Size"
+                       OnClick="OnDeleteClick"
+                       Class="glass-panel hover-danger" />
+    }
+</MudTooltip>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    [Parameter] public DeletionType DeleteMode { get; set; } = DeletionType.SoftDelete;
+    [Parameter] public EventCallback OnDeleted { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    private bool IsProcessing = false;
+    private string TooltipText => DeleteMode == DeletionType.HardDelete
+        ? L["Delete_Tooltip_Hard"]
+        : L["Delete_Tooltip_Soft"];
+
+    private async Task OnDeleteClick()
+    {
+        var parameters = new DialogParameters<ConfirmDeleteDialog>
+        {
+            { x => x.EntityName, typeof(TEntity).Name },
+            { x => x.DeleteMode, DeleteMode }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true,
+            BackgroundClass = "glass-blur"
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>(L["Delete_Confirm_Title"], parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
+        {
+            await ExecuteDelete();
+        }
+    }
+
+    private async Task ExecuteDelete()
+    {
+        IsProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            // --- LOGIC: RESTOCK INTERCEPTION ---
+            // If we are deleting an Order, we MUST restock items first.
+            // We use ServiceProvider to avoid circular dependencies or tight coupling
+            // if this component is used for other entities.
+            if (typeof(TEntity) == typeof(Order))
+            {
+                using var scope = ServiceProvider.CreateScope();
+                var orderService = scope.ServiceProvider.GetService<IOrderService>();
+                if (orderService != null)
+                {
+                    await orderService.PrepareOrderForDeletionAsync(Id);
+                }
+            }
+            // -----------------------------------
+
+            // Proceed with standard deletion
+            bool success = DeleteMode == DeletionType.HardDelete
+                ? await Repository.HardDeleteAsync(Id)
+                : await Repository.DeleteAsync(Id);
+
+            if (success)
+            {
+                Snackbar.Add(L["Delete_Success"], Severity.Success);
+                await OnDeleted.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add(L["Delete_Error"], Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["Error"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            IsProcessing = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,55 @@
+﻿@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<MudTooltip Text="@(IsDarkMode ? "Enable Light Mode" : "Enable Dark Mode")">
+    <MudIconButton Icon="@(IsDarkMode? Icons.Material.Filled.WbSunny : Icons.Material.Filled.NightsStay)"
+                   Color="Color.Inherit"
+                   OnClick="ToggleTheme"
+                   Class="rounded-xl transition-all theme-btn" />
+</MudTooltip>
+
+@code {
+    // These two parameters are REQUIRED for @bind-IsDarkMode to work
+    [Parameter] public bool IsDarkMode { get; set; }
+    [Parameter] public EventCallback<bool> IsDarkModeChanged { get; set; }
+
+    private async Task ToggleTheme()
+    {
+        // 1. Flip the value
+        var newValue = !IsDarkMode;
+
+        // 2. Notify the parent (MainLayout) so it updates the app
+        if (IsDarkModeChanged.HasDelegate)
+        {
+            await IsDarkModeChanged.InvokeAsync(newValue);
+        }
+
+        // 3. Persist to LocalStorage
+        await JS.InvokeVoidAsync("localStorage.setItem", "isDarkMode", newValue.ToString());
+    }
+
+    // Optional: Load initial state if not handled by Layout
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var storedValue = await JS.InvokeAsync<string>("localStorage.getItem", "isDarkMode");
+            if (!string.IsNullOrEmpty(storedValue) && bool.TryParse(storedValue, out var isDark))
+            {
+                // Only invoke change if different to prevent loops
+                if (IsDarkMode != isDark)
+                {
+                    await IsDarkModeChanged.InvokeAsync(isDark);
+                }
+            }
+        }
+    }
+}
+
+<style>
+    .theme-btn:hover {
+        transform: scale(1.1) rotate(15deg);
+        color: var(--mud-palette-secondary);
+    }
+</style>

@@ -1,0 +1,35 @@
+﻿@using MudBlazor
+@using MBET.Infrastructure.Services
+@inject CartService CartService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<MudTooltip Text="Cart">
+    <MudBadge Content="@_itemCount" Color="Color.Primary" Overlap="true" Class="mx-2" Visible="@(_itemCount > 0)">
+        <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart"
+                       Color="Color.Inherit"
+                       OnClick="@(() => Navigation.NavigateTo("/cart"))" />
+    </MudBadge>
+</MudTooltip>
+
+@code {
+    private int _itemCount = 0;
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to cart changes
+        CartService.OnChange += UpdateCount;
+        UpdateCount();
+    }
+
+    private void UpdateCount()
+    {
+        _itemCount = CartService.GetItems().Sum(i => i.Quantity);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        CartService.OnChange -= UpdateCount;
+    }
+}

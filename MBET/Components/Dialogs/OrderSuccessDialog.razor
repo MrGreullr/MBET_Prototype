@@ -1,0 +1,49 @@
+﻿@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+
+@inject NavigationManager Navigation
+@inject IStringLocalizer<L> L
+
+<MudDialog Class="glass-panel rounded-xl" Style="backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1);">
+    <TitleContent></TitleContent>
+    <DialogContent>
+        <div class="d-flex flex-column align-center justify-center pa-4 text-center">
+            <div class="mb-6 relative">
+                <div class="absolute inset-0 bg-primary opacity-20 rounded-circle" style="filter: blur(20px); transform: scale(1.5);"></div>
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Style="font-size: 5rem; position: relative;" />
+            </div>
+
+            <MudText Typo="Typo.h4" Class="font-black mb-2">@L["OrderConfirmed"]</MudText>
+            <MudText Typo="Typo.body1" Class="mud-text-secondary mb-6" Style="max-width: 300px;">
+                @L["OrderSuccessMessage"]
+            </MudText>
+
+            <MudChip T="string" Color="Color.Surface" Variant="Variant.Outlined" Class="mb-6 font-mono">
+                @L["OrderNumber"]: @OrderNumber
+            </MudChip>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudStack Row="true" Spacing="2" Class="w-100 justify-center pb-6 px-6">
+            <MudButton Variant="Variant.Text" OnClick="ContinueShopping">@L["ContinueShopping"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewOrder" Class="px-8 rounded-lg font-bold">@L["ViewOrder"]</MudButton>
+        </MudStack>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string OrderNumber { get; set; } = "----";
+
+    private void ContinueShopping()
+    {
+        MudDialog.Close();
+        Navigation.NavigateTo("/catalog");
+    }
+
+    private void ViewOrder()
+    {
+        MudDialog.Close();
+        Navigation.NavigateTo("/my-orders");
+    }
+}

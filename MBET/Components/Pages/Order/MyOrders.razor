@@ -1,0 +1,269 @@
+﻿@page "/my-orders"
+@using MBET.Core.Entities
+@using MBET.Core.Entities.Identity
+@using MBET.Core.Interfaces
+@using MBET.Shared.Resources
+@using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MBET.Core.Enums
+@using MBET.web.Components.Admin.AdminTools
+@using MudBlazor.Services
+
+@implements IBrowserViewportObserver
+@implements IAsyncDisposable
+
+@attribute [Authorize]
+
+@inject IOrderRepository OrderRepo
+@inject IOrderService OrderService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+@inject ISettingsService SettingsService
+@inject IBrowserViewportService BreakpointListener
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-12 mb-16">
+    <div class="d-flex align-center gap-3 mb-8">
+        <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h3" Class="italic font-black">@L["MyOrders"]</MudText>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="d-flex justify-center pa-16">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    }
+    else if (!_orders.Any())
+    {
+        <MudPaper Class="pa-16 text-center rounded-xl glass-panel" Elevation="0">
+            <MudIcon Icon="@Icons.Material.TwoTone.ShoppingBag" Size="Size.Large" Class="mb-4 mud-text-secondary" />
+            <MudText Typo="Typo.h5">@L["NoOrdersYet"]</MudText>
+            <MudButton Href="/catalog" Variant="Variant.Text" Color="Color.Primary" Class="mt-4">@L["StartShopping"]</MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        @if (_isMobile)
+        {
+            <MudStack Spacing="3">
+                @foreach (var order in _orders)
+                {
+                    <MudPaper Class="pa-4 rounded-xl glass-panel relative" Elevation="0" @onclick="@(() => OpenDetails(order))">
+                        <div class="d-flex justify-space-between align-start mb-2">
+                            <div>
+                                <MudText Typo="Typo.subtitle1" Class="font-bold">@order.OrderNumber</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@order.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</MudText>
+                            </div>
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(order.Status)" Variant="Variant.Filled" Class="mr-0">
+                                @L[$"Status_{order.Status}"]
+                            </MudChip>
+                        </div>
+
+                        <div class="d-flex justify-space-between align-center mt-3">
+                            <div class="d-flex flex-column">
+                                <MudText Typo="Typo.caption">@L["Total"]</MudText>
+                                <MudText Typo="Typo.h6" Class="font-bold text-primary">@order.GrandTotal.ToString("N0") @_currencySymbol</MudText>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                @if (CanCancel(order.Status))
+                                {
+                                    /* FIX: Wrapped in a div with @onclick:stopPropagation.
+                                    This catches the bubble event before it hits the MudPaper
+                                    and stops it, preventing the details dialog from opening.
+                                    */
+                                    <div @onclick:stopPropagation="true">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                                       Color="Color.Error"
+                                                       Variant="Variant.Outlined"
+                                                       Size="Size.Small"
+                                                       OnClick="@((e) => CancelOrder(order))" />
+                                    </div>
+                                }
+                                <MudIconButton Icon="@(order.Status == OrderStatus.Pending ? Icons.Material.Filled.Edit : Icons.Material.Filled.ChevronRight)"
+                                               Color="Color.Primary"
+                                               Variant="Variant.Filled"
+                                               Size="Size.Small" />
+                            </div>
+                        </div>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+        else
+        {
+            <MudDataGrid T="Order" Items="@_orders" Hover="true" Class="rounded-xl glass-panel overflow-hidden" Elevation="0">
+                <Columns>
+                    <PropertyColumn Property="x => x.OrderNumber" Title="@L["OrderNumber"]">
+                        <CellTemplate>
+                            <span class="font-bold">@context.Item.OrderNumber</span>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.CreatedAt" Title="@L["Date"]">
+                        <CellTemplate>
+                            @context.Item.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.GrandTotal" Title="@L["Total"]">
+                        <CellTemplate>
+                            <span class="text-primary font-bold">@context.Item.GrandTotal.ToString("N0") @_currencySymbol</span>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.Status" Title="@L["Status"]">
+                        <CellTemplate>
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Item.Status)" Variant="Variant.Filled">
+                                @L[$"Status_{context.Item.Status}"]
+                            </MudChip>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <TemplateColumn Title="@L["Actions"]" Sortable="false">
+                        <CellTemplate>
+                            <MudStack Row="true" Spacing="2">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => OpenDetails(context.Item))">
+                                    @(context.Item.Status == OrderStatus.Pending ? L["Edit"] : L["ViewDetails"])
+                                </MudButton>
+
+                                @if (CanCancel(context.Item.Status))
+                                {
+                                    <MudButton Variant="Variant.Text"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => CancelOrder(context.Item))">
+                                        @L["Cancel"]
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+    }
+</MudContainer>
+
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
+
+@code {
+    private List<Order> _orders = new();
+    private bool _loading = true;
+    private string _currencySymbol = "$";
+
+    // Viewport State
+    private bool _isMobile = false;
+
+    // Required for IBrowserViewportObserver
+    Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
+
+    // FIX: Changed ResizeOptions to Nullable (ResizeOptions?) and added 'using MudBlazor.Services'
+    ResizeOptions? IBrowserViewportObserver.ResizeOptions { get; } = new()
+    {
+        ReportRate = 250,
+        NotifyOnBreakpointOnly = true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await SettingsService.GetSettingsAsync();
+        _currencySymbol = settings.CurrencySymbol;
+        await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await BreakpointListener.SubscribeAsync(this, fireImmediately: true);
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
+    {
+        var newIsMobile = browserViewportEventArgs.Breakpoint <= Breakpoint.Sm;
+
+        if (_isMobile != newIsMobile)
+        {
+            _isMobile = newIsMobile;
+            return InvokeAsync(StateHasChanged);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync() => await BreakpointListener.UnsubscribeAsync(this);
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                _orders = (await OrderRepo.GetOrdersByUserIdAsync(appUser.Id)).ToList();
+            }
+        }
+        _loading = false;
+    }
+
+    private async Task OpenDetails(Order order)
+    {
+        var parameters = new DialogParameters<OrderDetailsDialog> { { x => x.OrderId, order.Id } };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<OrderDetailsDialog>(L["OrderDetails"], parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task CancelOrder(Order order)
+    {
+        bool? result = await DialogService.ShowMessageBox(L["Warning"], L["ConfirmCancelOrder"], yesText: L["Yes"], cancelText: L["No"]);
+        if (result == true)
+        {
+            try
+            {
+                await OrderService.UpdateOrderStatusAsync(order.Id, OrderStatus.Cancelled);
+                Snackbar.Add(L["OrderCancelledSuccess"], Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"{L["Error"]}: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private bool CanCancel(OrderStatus status) => status == OrderStatus.Pending || status == OrderStatus.Processing;
+
+    private Color GetStatusColor(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => Color.Warning,
+        OrderStatus.Processing => Color.Info,
+        OrderStatus.Shipped => Color.Primary,
+        OrderStatus.Delivered => Color.Success,
+        OrderStatus.Cancelled => Color.Error,
+        OrderStatus.Returned => Color.Dark,
+        _ => Color.Default
+    };
+}

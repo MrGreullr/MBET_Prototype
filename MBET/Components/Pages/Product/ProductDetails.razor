@@ -1,0 +1,374 @@
+﻿@page "/product/{Id:guid}"
+@using MBET.Core.Entities
+@using MBET.Core.Interfaces
+@using MBET.Infrastructure.Services
+@using Microsoft.Extensions.Localization
+@using MBET.Shared.Resources
+@using MBET.Shared.Components.Shared
+@using MBET.Shared.Components.Buttons
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IProductRepository ProductRepo
+@inject ISettingsService SettingsService
+@inject CartService CartService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<L> L
+
+<CascadingAuthenticationState>
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-16" Style="position: relative;">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <BackButton Text="@L["BackToStore"]" />
+        </div>
+
+        @if (_loading)
+        {
+            <div class="d-flex justify-center align-center" style="height: 50vh;">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            </div>
+        }
+        else if (_product == null || !_product.IsVisible)
+        {
+            <!-- Product Not Found or Hidden -->
+            <div class="d-flex flex-column align-center justify-center pa-16 glass-panel rounded-xl" style="height: 50vh;">
+                <MudIcon Icon="@Icons.Material.TwoTone.SearchOff" Size="Size.Large" Class="mb-4 mud-text-secondary" style="width: 64px; height: 64px;" />
+                <MudText Typo="Typo.h5" Class="font-bold mb-2">@L["ProductUnavailable"]</MudText>
+                <MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">@L["ProductUnavailableDesc"]</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/catalog">@L["ReturnToCatalog"]</MudButton>
+            </div>
+        }
+        else
+        {
+            <MudGrid Spacing="8">
+
+                <!-- LEFT: Gallery Section -->
+                <MudItem xs="12" md="6" lg="7">
+                    <!-- Main Image Container -->
+                    <MudPaper Outlined="true"
+                              Class="rounded-xl overflow-hidden d-flex align-center justify-center relative shadow-lg"
+                              Style="aspect-ratio: 1/1; background-color: #0b0e14; border-color: rgba(255,255,255,0.05);">
+
+                        <!-- Badges -->
+                        <div style="position: absolute; top: 16px; left: 16px; z-index: 10;" class="d-flex flex-column gap-2">
+                            @if (_isOutOfStock)
+                            {
+                                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Class="font-bold uppercase tracking-wider">
+                                    @L["Status_OutOfStock"]
+                                </MudChip>
+                            }
+                            else
+                            {
+                                if (_product.IsPriority)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Label="true" Class="font-bold uppercase shadow-sm">@L["Priority"]</MudChip>
+                                }
+                                if (_product.IsOnSale)
+                                {
+                                    <MudChip T="string" Color="Color.Secondary" Label="true" Class="font-bold uppercase shadow-sm">@L["Sale"]</MudChip>
+                                }
+                            }
+                        </div>
+
+                        <!-- Navigation Arrows -->
+                        @if (_imageList.Count > 1)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Color="Color.Inherit" Size="Size.Large" OnClick="@(() => CycleImage(-1))"
+                                           Style="position: absolute; left: 10px; z-index: 20; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Inherit" Size="Size.Large" OnClick="@(() => CycleImage(1))"
+                                           Style="position: absolute; right: 10px; z-index: 20; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);" />
+                        }
+
+                        <!-- The Image -->
+                        <MudImage Src="@_selectedImage" Alt="@_product.Title" ObjectFit="ObjectFit.Contain" Style="width: 90%; height: 90%; transition: transform 0.3s ease;" Class="hover-zoom" />
+                    </MudPaper>
+
+                    <!-- Thumbnails -->
+                    @if (_imageList.Count > 1)
+                    {
+                        <MudStack Row="true" Class="mt-4 overflow-x-auto pb-2 custom-scrollbar" Spacing="4">
+                            @for (int i = 0; i < _imageList.Count; i++)
+                            {
+                                var index = i;
+                                var img = _imageList[i];
+                                var isSelected = index == _selectedIndex;
+                                var opacity = isSelected ? "1" : "0.5";
+                                var borderColor = isSelected ? "var(--mud-palette-primary)" : "transparent";
+
+                                <MudPaper Elevation="0"
+                                          Class="cursor-pointer rounded-lg overflow-hidden d-flex align-center justify-center transition-all"
+                                          Style="@($"width: 80px; height: 80px; flex-shrink: 0; background-color: #0b0e14; border: 2px solid {borderColor}; opacity: {opacity};")"
+                                          OnClick="@(() => SetImage(index))">
+                                    <MudImage Src="@img.ImageUrl" ObjectFit="ObjectFit.Contain" Style="width: 80%; height: 80%;" />
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    }
+
+                    <!-- Description (Moved to Left Column for cleaner layout) -->
+                    <div class="mt-8">
+                        <MudText Typo="Typo.h6" Class="font-bold mb-4">@L["Description"]</MudText>
+                        <MudText Typo="Typo.body1" Class="mud-text-secondary" Style="line-height: 1.8; font-size: 1.05rem;">
+                            @_product.Description
+                        </MudText>
+                    </div>
+                </MudItem>
+
+                <!-- RIGHT: Unified Sticky Action & Info Panel -->
+                <MudItem xs="12" md="6" lg="5">
+                    <div class="sticky" style="top: 100px;">
+                        <MudPaper Class="pa-6 pa-md-8 rounded-2xl glass-panel shadow-xl" Elevation="0" Style="border: 1px solid rgba(255,255,255,0.08);">
+
+                            <!-- Category & Rating -->
+                            <div class="d-flex justify-space-between align-center mb-3">
+                                <MudText Typo="Typo.overline" Color="Color.Primary" Class="font-bold tracking-widest">
+                                    @_product.Category?.Name
+                                </MudText>
+                                <div class="d-flex align-center gap-1" style="background: rgba(255, 193, 7, 0.1); padding: 4px 10px; border-radius: 20px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
+                                    <MudText Typo="Typo.caption" Class="font-bold text-warning">@_product.Rating.ToString("F1")</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-1">(@_product.ReviewCount)</MudText>
+                                </div>
+                            </div>
+
+                            <!-- Title -->
+                            <MudText Typo="Typo.h4" Class="font-black mb-6" Style="line-height: 1.2;">
+                                @_product.Title
+                            </MudText>
+
+                            <!-- Price Block -->
+                            <div class="pa-4 rounded-xl mb-6" style="background-color: rgba(0,0,0,0.2);">
+                                <div class="d-flex align-end gap-3 flex-wrap">
+                                    <MudText Typo="Typo.h3" Color="Color.Primary" Class="font-black">
+                                        @_product.Price.ToString("N0") <span style="font-size: 0.6em; margin-left: 2px;">@_currencySymbol</span>
+                                    </MudText>
+
+                                    @if (_product.OriginalPrice.HasValue && _product.OriginalPrice > _product.Price)
+                                    {
+                                        <MudText Typo="Typo.h6" Class="mud-text-secondary text-decoration-line-through mb-1">
+                                            @_product.OriginalPrice.Value.ToString("N0") @_currencySymbol
+                                        </MudText>
+
+                                        var savings = (int)((_product.OriginalPrice.Value - _product.Price) / _product.OriginalPrice.Value * 100);
+                                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled" Class="font-bold mb-2">
+                                            -@savings%
+                                        </MudChip>
+                                    }
+                                </div>
+                            </div>
+
+                            <MudDivider Class="my-6 opacity-25" />
+
+                            <!-- Functional Update: Quantity Selector -->
+                            <div class="d-flex justify-space-between align-center mb-6">
+                                <MudText Typo="Typo.body1" Class="font-bold mud-text-secondary">@L["Quantity"]</MudText>
+
+                                <div class="d-flex align-center gap-4">
+                                    <div class="d-flex align-center rounded-lg" style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" OnClick="DecreaseQty" Disabled="@(_quantityToAdd <= 1 || _isOutOfStock)" />
+                                        <MudText Typo="Typo.body1" Class="px-4 font-bold" Style="min-width: 40px; text-align: center;">@_quantityToAdd</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="IncreaseQty" Disabled="@(_isOutOfStock || _quantityToAdd >= _product.StockQuantity)" />
+                                    </div>
+                                    <MudText Typo="Typo.caption" Class="@(_product.StockQuantity < 5 ? "text-warning font-bold" : "mud-text-secondary")">
+                                        @_product.StockQuantity @L["Available"]
+                                    </MudText>
+                                </div>
+                            </div>
+
+                            <!-- Add To Cart -->
+                            <MudButton Variant="@(_isOutOfStock? Variant.Outlined: Variant.Filled)"
+                                       Color="@(_isOutOfStock ? Color.Error : Color.Primary)"
+                                       Size="Size.Large"
+                                       FullWidth="true"
+                                       Class="py-4 font-bold rounded-lg mb-4 text-lg"
+                                       StartIcon="@(_isOutOfStock ? Icons.Material.Filled.ProductionQuantityLimits : Icons.Material.Filled.ShoppingCart)"
+                                       OnClick="AddToCart"
+                                       Disabled="@_isOutOfStock">
+                                @(_isOutOfStock? L["Status_OutOfStock"] : L["AddToCart"])
+                            </MudButton>
+
+                            <!-- Trust Badges -->
+                            <div class="d-flex gap-2 justify-space-between mt-4 pa-3 rounded-lg" style="background-color: rgba(255,255,255,0.02);">
+                                <div class="d-flex flex-column align-center text-center gap-1 flex-1">
+                                    <MudIcon Icon="@Icons.Material.Rounded.Security" Size="Size.Small" Color="Color.Success" />
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-size: 0.65rem;">Official<br />Warranty</MudText>
+                                </div>
+                                <div class="d-flex flex-column align-center text-center gap-1 flex-1" style="border-left: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05);">
+                                    <MudIcon Icon="@Icons.Material.Rounded.LocalShipping" Size="Size.Small" Color="Color.Secondary" />
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-size: 0.65rem;">Fast<br />Delivery</MudText>
+                                </div>
+                                <div class="d-flex flex-column align-center text-center gap-1 flex-1">
+                                    <MudIcon Icon="@Icons.Material.Rounded.AssignmentReturn" Size="Size.Small" Color="Color.Info" />
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-size: 0.65rem;">Easy<br />Returns</MudText>
+                                </div>
+                            </div>
+                        </MudPaper>
+
+                        <!-- Specifications Accordion -->
+                        @if (_product.Specifications != null && _product.Specifications.Any())
+                        {
+                            <MudExpansionPanels Elevation="0" Class="rounded-xl mt-6 glass-panel" Style="border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <MudExpansionPanel Text="@L["Specifications"]" Class="bg-transparent font-bold">
+                                    <MudSimpleTable Style="background: transparent;" Hover="true" Dense="true">
+                                        <tbody>
+                                            @foreach (var spec in _product.Specifications)
+                                            {
+                                                <tr>
+                                                    <td class="mud-text-secondary" style="width: 40%; border-bottom: 1px solid rgba(255,255,255,0.05);">@spec.Key</td>
+                                                    <td class="font-bold" style="border-bottom: 1px solid rgba(255,255,255,0.05);">@spec.Value</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </MudSimpleTable>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        }
+                    </div>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Review Section -->
+            <div class="mt-16 pt-8" style="border-top: 1px solid rgba(255,255,255,0.05);">
+                <ProductReviews ProductId="@Id" />
+            </div>
+        }
+    </MudContainer>
+</CascadingAuthenticationState>
+
+<style>
+    .hover-zoom:hover {
+        transform: scale(1.05);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+</style>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private Product? _product;
+    private GlobalSettings? _settings;
+    private string _currencySymbol = "$";
+
+    private string _selectedImage = "";
+    private int _selectedIndex = 0;
+    private List<ProductImage> _imageList = new();
+    private bool _loading = true;
+
+    // UX Feature: Custom quantity state
+    private int _quantityToAdd = 1;
+
+    private bool _isOutOfStock => _product != null && (_product.IsOutOfStock || _product.StockQuantity <= 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+
+        // 1. Load Settings for Currency
+        _settings = await SettingsService.GetSettingsAsync();
+        if (_settings != null)
+        {
+            _currencySymbol = _settings.CurrencySymbol;
+        }
+
+        // 2. Load Product
+        _product = await ProductRepo.GetByIdAsync(Id);
+
+        if (_product != null)
+        {
+            _imageList = _product.Images.ToList();
+
+            var primary = _imageList.FirstOrDefault(x => x.IsPrimary);
+            if (primary != null)
+            {
+                _selectedIndex = _imageList.IndexOf(primary);
+                _selectedImage = primary.ImageUrl;
+            }
+            else if (_imageList.Any())
+            {
+                _selectedImage = _imageList[0].ImageUrl;
+                _selectedIndex = 0;
+            }
+            else
+            {
+                _selectedImage = "https://via.placeholder.com/600";
+            }
+        }
+        _loading = false;
+    }
+
+    private void SetImage(int index)
+    {
+        if (index >= 0 && index < _imageList.Count)
+        {
+            _selectedIndex = index;
+            _selectedImage = _imageList[index].ImageUrl;
+        }
+    }
+
+    private void CycleImage(int direction)
+    {
+        if (!_imageList.Any()) return;
+        _selectedIndex = (_selectedIndex + direction + _imageList.Count) % _imageList.Count;
+        _selectedImage = _imageList[_selectedIndex].ImageUrl;
+    }
+
+    // UX Feature Logic
+    private void IncreaseQty()
+    {
+        if (_product != null && _quantityToAdd < _product.StockQuantity)
+        {
+            _quantityToAdd++;
+        }
+    }
+
+    private void DecreaseQty()
+    {
+        if (_quantityToAdd > 1)
+        {
+            _quantityToAdd--;
+        }
+    }
+
+    private void AddToCart()
+    {
+        if (_product != null && !_isOutOfStock)
+        {
+            bool success = true;
+
+            // Loop allows users to add X amount securely using your existing CartService bool logic
+            for (int i = 0; i < _quantityToAdd; i++)
+            {
+                success = CartService.AddToCart(_product);
+                if (!success) break;
+            }
+
+            if (success)
+            {
+                Snackbar.Add($"{_quantityToAdd}x {_product.Title} {L["AddedToCart"]}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(L["StockLimitReached"], Severity.Warning);
+            }
+
+            // Reset to 1 after adding to prevent accidental double-adding
+            _quantityToAdd = 1;
+        }
+    }
+}
